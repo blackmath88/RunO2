@@ -121,7 +121,7 @@ def run(network, source, *, pollutant: str = "pm25") -> dict:
     return verdict
 
 
-def _markdown(verdict: dict) -> str:
+def _markdown(verdict: dict, data_statistics: Optional[dict] = None) -> str:
     lines = ["# Air data viability", ""]
     lines.append(f"Pollutant: `{verdict['pollutant']}`")
     lines.append("")
@@ -135,6 +135,15 @@ def _markdown(verdict: dict) -> str:
         lines.append(json.dumps(verdict[key], indent=2))
         lines.append("```")
         lines.append("")
+    if data_statistics:
+        lines.extend([
+            "## measurement window",
+            "",
+            "```json",
+            json.dumps(data_statistics, indent=2),
+            "```",
+            "",
+        ])
     return "\n".join(lines)
 
 
@@ -151,14 +160,14 @@ def main(argv=None) -> int:
 
     if args.csv:
         source = BaselTramAirSource(args.csv)
-        from ..street_sources.graphml_cache import load_cached_network  # type: ignore
-        network = load_cached_network("walk")
+        from ..street_sources import load_network
+        network = load_network("walk")
     else:
         source = FixtureAirSource()
         network = fixture_network()
 
     verdict = run(network, source, pollutant=args.pollutant)
-    text = _markdown(verdict)
+    text = _markdown(verdict, getattr(source, "statistics", None))
     print(text)
     try:
         with open(args.out, "w", encoding="utf-8") as handle:

@@ -10,6 +10,8 @@ __pycache__/
 data/raw/*.json
 data/raw/osmnx_cache/
 data/raw/gtfs/
+data/raw/air/*.csv
+data/raw/air/*.part
 
 # data/processed/ is deliberately NOT ignored. It holds the frozen snapshot of
 # real Basel data this repository ships, so `git clone && uvicorn` works with no

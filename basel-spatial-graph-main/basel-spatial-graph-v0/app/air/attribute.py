@@ -70,20 +70,26 @@ def attribute_readings(
         rx, ry = to_metric([r.lon for r in usable], [r.lat for r in usable])
         rx = np.atleast_1d(np.asarray(rx, dtype=float))
         ry = np.atleast_1d(np.asarray(ry, dtype=float))
-        # Chunked so a 900k-row export does not allocate a 900k x |E| matrix.
-        chunk = max(1, int(2_000_000 / max(len(ids), 1)))
-        for start in range(0, len(usable), chunk):
-            stop = min(start + chunk, len(usable))
-            dx = rx[start:stop, None] - seg_x[None, :]
-            dy = ry[start:stop, None] - seg_y[None, :]
-            hits = np.nonzero(np.hypot(dx, dy) <= radius_m)
-            for row, col in zip(*hits):
-                reading = usable[start + int(row)]
-                sid = ids[int(col)]
-                buckets[sid].append(reading.values[pollutant])
-                if with_hours:
-                    hour_buckets[sid][reading.hour].append(reading.values[pollutant])
-                provenance_by_segment.setdefault(sid, reading.provenance or {})
+        # A radius-sized spatial grid keeps the real 600k-reading dataset
+        # linear. Each reading only checks segments in its own and eight
+        # neighbouring cells; the distance test remains exactly the same.
+        cell_size = max(float(radius_m), 1.0)
+        cells: Dict[Tuple[int, int], List[int]] = defaultdict(list)
+        for col, (x, y) in enumerate(zip(seg_x, seg_y)):
+            cells[(int(np.floor(x / cell_size)), int(np.floor(y / cell_size)))].append(col)
+        radius_sq = radius_m * radius_m
+        for reading, x, y in zip(usable, rx, ry):
+            cx, cy = int(np.floor(x / cell_size)), int(np.floor(y / cell_size))
+            for gx in range(cx - 1, cx + 2):
+                for gy in range(cy - 1, cy + 2):
+                    for col in cells.get((gx, gy), ()):
+                        if (x - seg_x[col]) ** 2 + (y - seg_y[col]) ** 2 > radius_sq:
+                            continue
+                        sid = ids[col]
+                        buckets[sid].append(reading.values[pollutant])
+                        if with_hours:
+                            hour_buckets[sid][reading.hour].append(reading.values[pollutant])
+                        provenance_by_segment.setdefault(sid, reading.provenance or {})
 
     segments: Dict[str, SegmentAir] = {}
     for i, sid in enumerate(ids):

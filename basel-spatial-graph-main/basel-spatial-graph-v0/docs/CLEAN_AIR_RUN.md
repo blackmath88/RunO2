@@ -11,14 +11,14 @@ Built for the Hack am Rhein warm-up. Additive: nothing in `app/` outside
 
 ## The gate
 
-**Nothing here is validated against real data yet.** The air layer runs on a
-synthetic field, and the interface says so on screen.
+The committed fixture report exercises the gate on a synthetic field. The real
+report is written separately to `experiments/AIR_VIABILITY_REAL.md`.
 
 Before trusting any of it, run:
 
 ```bash
-python -m app.air.sources.basel_tram --inspect readings.csv   # confirm the schema
-python -m app.air.viability --csv readings.csv                # answer the three questions
+python -m app.air.viability --csv data/raw/air/100113.csv \
+  --out experiments/AIR_VIABILITY_REAL.md
 ```
 
 The viability script asks whether the data can carry the product at all:
@@ -131,8 +131,8 @@ tests/test_air_layer.py, tests/test_air_api.py
 
 ## Known limitations
 
-- The tram CSV schema is assumed, not observed. `COLUMN_CANDIDATES` in
-  `basel_tram.py` is the single place to fix it.
+- Dataset 100113's confirmed fields are `time`, `sensornr`, `pm25`, `pm10`,
+  `longitude` and `latitude`. Stationary QA sensors 236 and 240 are excluded.
 - The published sensor error band is `None` until read off the comparison
   dataset. A made-up band would be worse than an absent one, because the
   interface would render it as knowledge.

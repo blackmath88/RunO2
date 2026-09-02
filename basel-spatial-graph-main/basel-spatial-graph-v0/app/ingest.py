@@ -113,6 +113,40 @@ def fetch_dataset(dataset_id, limit, order_by: Optional[str] = None,
     return rows
 
 
+def fetch_dataset_metadata(dataset_id: str) -> dict:
+    """Fetch one Opendatasoft catalog entry through the shared Basel client."""
+    with httpx.Client(timeout=30, follow_redirects=True) as client:
+        response = client.get(f"{BASEL_API}/{dataset_id}")
+        response.raise_for_status()
+        return response.json()
+
+
+def cache_dataset_export(dataset_id: str, path, *, force: bool = False,
+                         where: Optional[str] = None) -> Path:
+    """Download an Opendatasoft CSV export once and reuse it on later runs.
+
+    Bulk datasets should use the export endpoint rather than making thousands
+    of calls to the 100-row records endpoint. The temporary file is renamed
+    only after a successful download, so an interrupted fetch never becomes a
+    valid-looking cache.
+    """
+    path = Path(path)
+    if path.exists() and not force:
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".part")
+    with httpx.Client(timeout=None, follow_redirects=True) as client:
+        params = {"where": where} if where else None
+        with client.stream("GET", f"{BASEL_API}/{dataset_id}/exports/csv",
+                           params=params) as response:
+            response.raise_for_status()
+            with temporary.open("wb") as handle:
+                for chunk in response.iter_bytes():
+                    handle.write(chunk)
+    temporary.replace(path)
+    return path
+
+
 def fetch_entities(save_raw: bool = True) -> dict:
     """Fetch and normalize live entities. Raises on failure — the caller decides."""
     raw = {
