@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clean Air Run — Basel</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --ink: #16181d; --muted: #6b7280; --line: #e3e5ea; --bg: #fbfbfa;
+    --measured: #2f7d63; --unmeasured: #9aa1ad; --dynamic: #7a5ea8; --warn: #b4532a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+         color: var(--ink); background: var(--bg); }
+  header { padding: 20px 18px 12px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.01em; }
+  .lede { margin: 0; color: var(--muted); max-width: 60ch; }
+  main { padding: 16px 18px 60px; max-width: 900px; margin: 0 auto; }
+  #map { height: 55vh; min-height: 320px; border: 1px solid var(--line); border-radius: 6px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+  .control { flex: 1 1 180px; }
+  label { display: block; font-size: 12px; text-transform: uppercase;
+          letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+  input[type=range] { width: 100%; }
+  .value { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .loops { display: grid; gap: 10px; margin-top: 12px; }
+  .loop { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px;
+          background: #fff; cursor: pointer; }
+  .loop[aria-selected=true] { border-color: var(--measured); box-shadow: 0 0 0 1px var(--measured); }
+  .loop h3 { margin: 0 0 6px; font-size: 15px; }
+  .stat { display: inline-block; margin-right: 16px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; display: block; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 3px;
+           border: 1px solid currentColor; text-transform: lowercase; }
+  .measured { color: var(--measured); } .unmeasured { color: var(--unmeasured); }
+  .dynamic { color: var(--dynamic); }
+  .coverage { margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .notice { border-left: 3px solid var(--warn); padding: 8px 12px; margin: 12px 0;
+            background: #fff; color: var(--warn); font-size: 13px; }
+  .hours { display: flex; gap: 2px; margin-top: 8px; }
+  .hours button { flex: 1; border: 1px solid var(--line); background: #fff; padding: 6px 0;
+                  font-size: 11px; cursor: pointer; border-radius: 2px; }
+  .hours button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button.primary { background: var(--ink); color: #fff; border: 0; padding: 9px 16px;
+                   border-radius: 4px; cursor: pointer; font-size: 14px; }
+  footer { border-top: 1px solid var(--line); margin-top: 32px; padding-top: 14px;
+           font-size: 13px; color: var(--muted); }
+  .legend { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .leaflet-tooltip.prov { font-size: 12px; line-height: 1.4; max-width: 260px; }
+  .leaflet-tooltip.prov b { display: block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Clean Air Run</h1>
+  <p class="lede">Basel's trams carry air sensors as they cross the city. This plans a
+  running loop around what they measured — and shows you which streets nobody has
+  ever measured at all.</p>
+</header>
+
+<main>
+  <div id="notice"></div>
+  <div id="map"></div>
+  <p class="legend">
+    <span class="badge measured">measured</span>
+    a sensor passed this street ·
+    <span class="badge unmeasured">unmeasured</span>
+    no sensor ever did — unknown, not clean ·
+    <span class="badge dynamic">dynamic</span>
+    computed for your pace and hour
+  </p>
+
+  <div class="controls">
+    <div class="control">
+      <label for="dist">Distance <span class="value" id="distOut">5.0 km</span></label>
+      <input type="range" id="dist" min="1" max="20" step="0.5" value="5">
+    </div>
+    <div class="control">
+      <label for="pace">Pace <span class="value" id="paceOut">6:00 /km</span></label>
+      <input type="range" id="pace" min="3.5" max="9" step="0.25" value="6">
+    </div>
+    <div class="control">
+      <label>Time of day <span class="value" id="hourOut">any</span></label>
+      <div class="hours" id="hours"></div>
+    </div>
+  </div>
+
+  <div class="loops" id="loops"></div>
+  <div class="actions">
+    <button class="primary" id="gpx">Download GPX</button>
+  </div>
+
+  <footer>
+    <p>Exposure is concentration multiplied by time spent breathing it, scaled for
+    running. It is an indicative comparison between routes, not a measure of what
+    you personally inhale, and it says nothing about whether a run is healthy.</p>
+    <p>Air: Open Data Basel-Stadt · Streets: OpenStreetMap contributors (ODbL) ·
+    Timetable: opentransportdata.swiss. Provenance for every value travels into
+    the GPX file as well as onto the screen.</p>
+  </footer>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const state = { lon: 7.5886, lat: 47.5596, distance: 5, pace: 6, hour: null, loops: [], selected: 0 };
+const map = L.map('map').setView([state.lat, state.lon], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+let marker = L.marker([state.lat, state.lon], { draggable: true }).addTo(map);
+let drawn = [];
+
+function paceLabel(p) {
+  const m = Math.floor(p), s = Math.round((p - m) * 60);
+  return `${m}:${String(s).padStart(2, '0')} /km`;
+}
+
+const hoursEl = document.getElementById('hours');
+[['any', null], ['7', 7], ['12', 12], ['17', 17], ['20', 20]].forEach(([label, value]) => {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.setAttribute('aria-pressed', value === state.hour);
+  b.onclick = () => { state.hour = value; document.getElementById('hourOut').textContent = label;
+                      [...hoursEl.children].forEach(c => c.setAttribute('aria-pressed', c === b)); load(); };
+  hoursEl.appendChild(b);
+});
+
+document.getElementById('dist').oninput = e => {
+  state.distance = parseFloat(e.target.value);
+  document.getElementById('distOut').textContent = state.distance.toFixed(1) + ' km';
+};
+document.getElementById('dist').onchange = load;
+document.getElementById('pace').oninput = e => {
+  state.pace = parseFloat(e.target.value);
+  document.getElementById('paceOut').textContent = paceLabel(state.pace);
+};
+document.getElementById('pace').onchange = load;
+marker.on('dragend', () => { const p = marker.getLatLng(); state.lat = p.lat; state.lon = p.lng; load(); });
+map.on('click', e => { marker.setLatLng(e.latlng); state.lat = e.latlng.lat; state.lon = e.latlng.lng; load(); });
+
+function query() {
+  const p = new URLSearchParams({ lon: state.lon, lat: state.lat,
+    distance_m: state.distance * 1000, pace_min_per_km: state.pace });
+  if (state.hour !== null) p.set('hour', state.hour);
+  return p;
+}
+
+async function load() {
+  const el = document.getElementById('loops');
+  el.innerHTML = '<p style="color:var(--muted)">Finding loops…</p>';
+  try {
+    const res = await fetch('/run/loops?' + query());
+    if (!res.ok) { el.innerHTML = `<p style="color:var(--warn)">${(await res.json()).detail}</p>`; return; }
+    const data = await res.json();
+    state.loops = data.loops; state.selected = 0;
+    renderNotice(data.air_source, data.network_coverage);
+    render();
+  } catch (err) {
+    el.innerHTML = `<p style="color:var(--warn)">Could not reach the planner: ${err}</p>`;
+  }
+}
+
+function renderNotice(source, coverage) {
+  const n = document.getElementById('notice');
+  const bits = [];
+  if (source && source.fixture) bits.push('<b>' + source.warning + '</b>');
+  bits.push(`Sensors cover ${(coverage.length_share * 100).toFixed(0)}% of the walking
+             network by length. The rest is unmeasured — shown as unmeasured, never as clean.`);
+  n.innerHTML = `<div class="notice">${bits.join(' ')}</div>`;
+}
+
+function render() {
+  drawn.forEach(l => map.removeLayer(l)); drawn = [];
+  const el = document.getElementById('loops');
+  el.innerHTML = '';
+  state.loops.forEach((loop, i) => {
+    const chosen = i === state.selected;
+    const ex = loop.exposure;
+    const card = document.createElement('div');
+    card.className = 'loop';
+    card.setAttribute('aria-selected', chosen);
+    card.innerHTML = `
+      <h3>Loop ${i + 1} <span class="badge dynamic">dynamic</span></h3>
+      <div>
+        <div class="stat">${loop.distance_km} km<span>distance</span></div>
+        <div class="stat">${ex.parameters.duration_min} min<span>at ${paceLabel(state.pace)}</span></div>
+        <div class="stat">${ex.mean_concentration ?? '—'}<span>µg/m³ mean, measured part</span></div>
+        <div class="stat">${(ex.coverage.measured_share * 100).toFixed(0)}%<span>of route measured</span></div>
+      </div>
+      <div class="coverage">${ex.explanation}</div>`;
+    card.onclick = () => { state.selected = i; render(); };
+    el.appendChild(card);
+
+    // Draw segment by segment so provenance can differ along one loop.
+    const coords = loop.coordinates;
+    loop.segments.forEach((seg, s) => {
+      if (s + 1 >= coords.length) return;
+      const a = coords[s], b = coords[s + 1];
+      const measured = seg.classification === 'measured';
+      const line = L.polyline([[a[1], a[0]], [b[1], b[0]]], {
+        color: chosen ? (measured ? '#2f7d63' : '#9aa1ad') : '#c9ccd3',
+        weight: chosen ? (measured ? 5 : 4) : 2,
+        dashArray: measured ? null : '4 6',
+        opacity: chosen ? 0.9 : 0.5
+      }).addTo(map);
+      line.bindTooltip(provenanceHtml(seg), { className: 'prov', sticky: true });
+      drawn.push(line);
+    });
+  });
+}
+
+function provenanceHtml(seg) {
+  if (seg.classification !== 'measured') {
+    return `<b>unmeasured</b>No sensor has passed this street. The value is unknown,
+            not zero — this stretch contributes nothing to the total.`;
+  }
+  return `<b>measured</b>${seg.concentration} µg/m³ (PM2.5)<br>
+          ${seg.minutes} min on this stretch<br>
+          Source: Open Data Basel-Stadt, tram-mounted sensors`;
+}
+
+document.getElementById('gpx').onclick = () => {
+  const p = query(); p.set('index', state.selected);
+  window.location = '/run/gpx?' + p;
+};
+
+load();
+</script>
+</body>
+</html>
