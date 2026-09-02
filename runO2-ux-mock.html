@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>runO2 — Basel route planner mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#0B1114; --panel:#101A1E; --panel2:#0E171A; --ink:#DCE5E2; --dim:#7C8D8B;
+  --faint:#3B4A4C; --line:#1E2C30; --green:#4E9E86; --green2:#73B39E; --amber:#C9A227;
+  --orange:#D6721F; --red:#D6301F; --blue:#6B96AE; --white:#F4F7F6;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth;background:var(--paper)} body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",sans-serif}
+button,input{font:inherit}.mono{font-family:"IBM Plex Mono",monospace}.caps{letter-spacing:.14em;text-transform:uppercase}.muted{color:var(--dim)}
+
+/* intro */
+.hero{height:100vh;min-height:660px;position:relative;overflow:hidden;background:#091013;display:flex;align-items:flex-end}
+.hero-media{position:absolute;inset:-8%;transform:translateY(var(--hero-shift,0px)) scale(1.08);transition:transform .08s linear;filter:saturate(.65) contrast(1.1)}
+.hero-media:before{content:"";position:absolute;inset:0;background:
+ radial-gradient(circle at 70% 45%,rgba(78,158,134,.22),transparent 26%),
+ radial-gradient(circle at 25% 65%,rgba(214,48,31,.10),transparent 24%),
+ linear-gradient(105deg,#152225 0%,#0D1619 44%,#18282C 70%,#091013 100%)}
+.hero-media:after{content:"";position:absolute;left:58%;top:17%;width:13vw;height:58vh;min-width:120px;min-height:420px;border-radius:55% 42% 34% 42%;background:linear-gradient(160deg,rgba(220,229,226,.12),rgba(220,229,226,.015));transform:rotate(-8deg);filter:blur(1px);box-shadow:-80px 100px 0 -25px rgba(220,229,226,.055),40px 185px 0 -33px rgba(220,229,226,.05)}
+.hero-grain{position:absolute;inset:0;opacity:.14;mix-blend-mode:soft-light;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E")}
+.hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,13,15,.1),rgba(8,13,15,.25) 48%,rgba(8,13,15,.94) 100%)}
+.topbar{position:absolute;z-index:5;left:0;right:0;top:0;padding:24px 34px;display:flex;justify-content:space-between;align-items:center;font-family:"IBM Plex Mono";font-size:11px;color:#cbd7d3}
+.logo{font-size:18px;letter-spacing:-.02em}.logo b{font-weight:500}.logo sub{color:var(--green);font-size:12px}.top-meta{display:flex;gap:20px;color:#9dafaa}
+.hero-copy{z-index:4;position:relative;width:min(920px,calc(100% - 64px));margin:0 0 8vh 7vw}
+.eyebrow{font-family:"IBM Plex Mono";font-size:11px;color:var(--green2);letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+.hero h1{font-size:clamp(54px,8vw,118px);line-height:.88;letter-spacing:-.055em;font-weight:300;margin:0;max-width:930px}
+.hero h1 em{font-style:normal;color:#82938f}.hero p{font-family:"IBM Plex Mono";font-size:14px;line-height:1.6;max-width:560px;color:#9fb0ac;margin:28px 0 30px}
+.cta{border:1px solid rgba(220,229,226,.32);background:rgba(11,17,20,.25);color:var(--ink);padding:12px 18px;border-radius:2px;cursor:pointer;font-family:"IBM Plex Mono";font-size:12px;letter-spacing:.04em;backdrop-filter:blur(8px)}
+.cta:hover{border-color:var(--green);background:rgba(78,158,134,.08)}
+.scrollhint{position:absolute;z-index:5;right:34px;bottom:34px;font-family:"IBM Plex Mono";font-size:10px;color:#657673;writing-mode:vertical-rl;letter-spacing:.13em}
+
+/* app shell */
+.planner{height:100vh;min-height:720px;display:grid;grid-template-columns:360px 1fr;background:var(--paper);border-top:1px solid #152227}
+.sidebar{background:var(--paper);border-right:1px solid var(--line);padding:22px 22px 18px;display:flex;flex-direction:column;overflow:auto}
+.sidebar-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.sidebar .logo{font-family:"IBM Plex Mono"}.city{font-family:"IBM Plex Mono";font-size:10px;color:var(--dim);text-align:right;line-height:1.55}
+.step{padding:18px 0;border-bottom:1px solid var(--line)}
+.step-title{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between}
+.question{font-size:22px;line-height:1.2;font-weight:400;margin-bottom:15px}
+.fake-input{border:1px solid var(--line);padding:10px 11px;font-family:"IBM Plex Mono";font-size:12px;color:#aebdb9;display:flex;justify-content:space-between;gap:10px;cursor:pointer;background:var(--panel2)}
+.fake-input strong{font-weight:400;color:var(--ink)}
+.segmented{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line)}.segmented button{background:none;color:var(--dim);border:0;border-right:1px solid var(--line);padding:9px 4px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}.segmented button:last-child{border-right:0}.segmented button.active{background:var(--green);color:#07110E}
+.range-line{display:flex;align-items:center;gap:12px;margin-top:14px}.range-line input{flex:1;accent-color:var(--green)}.range-value{font-family:"IBM Plex Mono";font-size:18px;min-width:58px;text-align:right}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line);padding:6px 8px;font-family:"IBM Plex Mono";font-size:10px;color:var(--dim);cursor:pointer}.chip.on{border-color:#31594d;color:#b8d7cd;background:#0F211C}
+.plan-btn{margin-top:auto;background:var(--white);color:#07100d;border:0;padding:13px 14px;font-family:"IBM Plex Mono";font-size:12px;font-weight:500;cursor:pointer}.plan-btn:hover{background:#dbe7e3}
+
+.map{position:relative;overflow:hidden;background:#0d1518}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(85,105,108,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(85,105,108,.07) 1px,transparent 1px);background-size:38px 38px}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.river{stroke:#18343c;stroke-width:34;fill:none;opacity:.75}.street{stroke:#28373b;stroke-width:1.5;fill:none;opacity:.75}.street.major{stroke:#34484d;stroke-width:2}.tram{stroke:#3d575c;stroke-width:2;fill:none;stroke-dasharray:3 5;opacity:.6}
+.route{fill:none;stroke-linecap:round;stroke-linejoin:round}.route.alt{stroke:#52666a;stroke-width:5;opacity:.58}.route.best{stroke:var(--green);stroke-width:7}.route.bad{stroke:var(--orange);stroke-width:4;stroke-dasharray:3 7;opacity:.95}
+.pin{fill:var(--white);stroke:#0b1114;stroke-width:4}.sensor{fill:#87bca9;opacity:.8}.sensor.dim{fill:#475b5c;opacity:.6}
+.map-top{position:absolute;left:20px;right:20px;top:18px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}.context-row{display:flex;gap:7px;flex-wrap:wrap}.context{pointer-events:auto;background:rgba(11,17,20,.88);border:1px solid var(--line);padding:8px 9px;backdrop-filter:blur(7px);font-family:"IBM Plex Mono";font-size:10px;color:#9caeaa}.context b{font-size:12px;color:var(--ink);font-weight:400;margin-right:5px}.context.good b{color:var(--green2)}.context.warn b{color:var(--amber)}
+.layers{pointer-events:auto;background:rgba(11,17,20,.88);border:1px solid var(--line);padding:5px;display:flex;gap:3px}.layers button{border:0;background:none;color:var(--dim);font-family:"IBM Plex Mono";font-size:9px;padding:5px 6px;cursor:pointer}.layers button.active{color:var(--ink);background:#172327}
+.route-results{position:absolute;right:18px;bottom:18px;width:315px;display:grid;gap:8px}.route-card{background:rgba(11,17,20,.92);border:1px solid var(--line);backdrop-filter:blur(9px);padding:12px 13px;cursor:pointer;transition:.15s}.route-card:hover,.route-card.active{border-color:#39675a;transform:translateY(-1px)}.route-card.active{background:rgba(14,31,26,.94)}
+.route-head{display:flex;justify-content:space-between;align-items:baseline}.route-name{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em}.rank{font-family:"IBM Plex Mono";font-size:9px;color:var(--green2)}.route-stats{margin-top:7px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;font-family:"IBM Plex Mono"}.route-stats b{display:block;font-size:13px;font-weight:400}.route-stats span{font-size:8px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.route-note{font-family:"IBM Plex Mono";font-size:9px;color:var(--dim);margin-top:7px}.route-note strong{color:var(--amber);font-weight:400}
+
+/* report */
+.modal{position:fixed;inset:0;z-index:20;background:rgba(3,7,8,.72);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:28px}.modal.open{display:flex}.report{width:min(980px,96vw);max-height:92vh;overflow:auto;background:var(--paper);border:1px solid #2a3a3e;box-shadow:0 25px 90px rgba(0,0,0,.55)}
+.report-top{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.report-title{font-size:22px;font-weight:400}.close{border:1px solid var(--line);color:var(--dim);background:none;width:34px;height:34px;cursor:pointer}.close:hover{color:var(--ink)}
+.report-grid{display:grid;grid-template-columns:1.2fr .8fr}.main-report{padding:22px}.side-report{padding:22px;border-left:1px solid var(--line);background:#0D1518}.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:25px}.metric{border-top:1px solid var(--line);padding-top:8px}.metric b{font-family:"IBM Plex Mono";font-size:19px;font-weight:300}.metric span{display:block;color:var(--dim);font-family:"IBM Plex Mono";font-size:8px;letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.section-label{font-family:"IBM Plex Mono";font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;margin:18px 0 10px}.elev{height:130px;border-bottom:1px solid var(--line);position:relative}.elev svg{width:100%;height:100%}.weather-line{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.wx{border-top:1px solid var(--line);padding-top:8px}.wx b{font-family:"IBM Plex Mono";font-size:16px;font-weight:300}.wx span{display:block;color:var(--dim);font-family:"IBM Plex Mono";font-size:8px;text-transform:uppercase;margin-top:3px}
+.air-callout{border:1px solid #31594d;background:#0d1d19;padding:13px 14px;font-family:"IBM Plex Mono";font-size:11px;line-height:1.55}.air-callout strong{font-weight:400;color:var(--green2)}
+.prov{display:grid;gap:10px}.prov-row{display:grid;grid-template-columns:82px 1fr;gap:10px;font-family:"IBM Plex Mono";font-size:9px}.badge{color:var(--green2);text-transform:uppercase;letter-spacing:.08em}.badge.dynamic{color:#9db6c3}.badge.forecast{color:#c6af60}.badge.unmeasured{color:#cf8353}.prov-row p{margin:0;color:#8b9b98;line-height:1.45}
+.report-actions{display:flex;gap:8px;margin-top:24px}.primary{background:var(--white);color:#07100d;border:0;padding:11px 13px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}.secondary{background:none;color:var(--ink);border:1px solid var(--line);padding:11px 13px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}
+.disclaimer{font-family:"IBM Plex Mono";font-size:9px;color:#566765;line-height:1.55;margin-top:20px}
+
+@media(max-width:840px){.planner{height:auto;min-height:100vh;grid-template-columns:1fr}.sidebar{min-height:auto;border-right:0;border-bottom:1px solid var(--line)}.map{height:70vh;min-height:560px}.route-results{left:12px;right:12px;width:auto}.route-card:not(.active){display:none}.report-grid{grid-template-columns:1fr}.side-report{border-left:0;border-top:1px solid var(--line)}.summary{grid-template-columns:repeat(3,1fr)}.hero-copy{margin-left:28px;width:calc(100% - 56px)}.topbar{padding:20px}.top-meta{display:none}}
+</style>
+</head>
+<body>
+<section class="hero" id="intro">
+  <div class="hero-media"></div><div class="hero-grain"></div><div class="hero-shade"></div>
+  <div class="topbar"><div class="logo"><b>run</b>O<sub>2</sub></div><div class="top-meta"><span>BASEL / 47.56° N</span><span>MEASURED CITY AIR</span></div></div>
+  <div class="hero-copy">
+    <div class="eyebrow">Basel's trams measure the air</div>
+    <h1>Choose your run.<br><em>Know what you run through.</em></h1>
+    <p>Plan a Basel loop around distance, weather and the air actually measured along the city’s tram network. Unmeasured streets stay unmeasured.</p>
+    <button class="cta" onclick="document.querySelector('#planner').scrollIntoView()">PLAN A RUN ↓</button>
+  </div>
+  <div class="scrollhint">SCROLL TO ROUTE</div>
+</section>
+
+<section class="planner" id="planner">
+  <aside class="sidebar">
+    <div class="sidebar-header"><div class="logo"><b>run</b>O<sub>2</sub></div><div class="city">BASEL<br>WED 02 SEP</div></div>
+
+    <div class="step">
+      <div class="step-title"><span>01 / start</span><span>map input</span></div>
+      <div class="question">Where do you start?</div>
+      <div class="fake-input" onclick="flashPin()"><strong>Near Wettsteinplatz</strong><span>change on map ↗</span></div>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span>02 / distance</span><span id="distanceLabel">8.0 km</span></div>
+      <div class="question">How long do you want to run?</div>
+      <div class="segmented"><button>5 km</button><button class="active">8 km</button><button>10 km</button><button>15 km</button></div>
+      <div class="range-line"><span class="muted mono" style="font-size:10px">3</span><input id="dist" type="range" min="3" max="18" step="0.5" value="8"><span class="range-value" id="distanceValue">8.0</span></div>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span>03 / when</span><span>forecast</span></div>
+      <div class="chips"><div class="chip on">NOW · 16:20</div><div class="chip">+1 HOUR</div><div class="chip">EVENING</div><div class="chip">TOMORROW</div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span>preferences</span><span>optional</span></div>
+      <div class="chips"><div class="chip on">LOWER MEASURED PM</div><div class="chip">LESS CLIMB</div><div class="chip on">PAVED</div><div class="chip">RIVER</div></div>
+    </div>
+
+    <button class="plan-btn" onclick="showRoutes()">FIND 3 ROUTES →</button>
+  </aside>
+
+  <main class="map">
+    <div class="map-grid"></div>
+    <svg viewBox="0 0 1000 780" preserveAspectRatio="none" aria-label="stylized Basel map">
+      <path class="river" d="M-40 275 C165 185 300 220 410 320 S660 530 1035 440"/>
+      <path class="street major" d="M80 100 L250 680 M160 60 L480 720 M390 25 L540 740 M560 0 L690 730 M760 30 L860 730"/>
+      <path class="street major" d="M40 150 C270 120 470 160 920 90 M25 360 C280 320 590 360 970 270 M10 560 C310 520 650 590 980 520"/>
+      <path class="street" d="M0 230 L970 700 M40 40 L940 610 M170 0 L910 500 M20 650 L800 100 M90 720 L760 30"/>
+      <path class="street" d="M0 455 C260 430 400 455 990 370 M150 760 C320 570 510 510 990 640 M240 0 C350 210 510 280 990 215"/>
+      <path class="tram" d="M160 120 C260 250 420 360 850 520"/>
+      <path class="tram" d="M170 590 C380 500 560 300 810 130"/>
+      <circle class="sensor" cx="280" cy="265" r="5"/><circle class="sensor" cx="350" cy="320" r="5"/><circle class="sensor" cx="438" cy="368" r="5"/><circle class="sensor" cx="520" cy="410" r="5"/><circle class="sensor" cx="605" cy="448" r="5"/><circle class="sensor dim" cx="672" cy="492" r="4"/><circle class="sensor" cx="360" cy="495" r="4"/><circle class="sensor" cx="470" cy="425" r="4"/>
+      <path id="alt1" class="route alt" d="M520 425 C470 340 390 285 310 320 C210 365 245 480 355 535 C480 600 630 540 680 460 C715 400 650 345 565 380 C540 392 530 405 520 425"/>
+      <path id="alt2" class="route alt" d="M520 425 C610 330 720 300 795 360 C870 420 790 520 665 560 C530 603 390 575 340 490 C302 425 350 360 445 360 C478 360 500 390 520 425"/>
+      <path id="best" class="route best" d="M520 425 C455 395 410 345 355 315 C305 286 260 300 244 350 C225 412 292 475 364 492 C456 515 545 495 614 452 C659 424 659 383 622 360 C580 334 541 382 520 425"/>
+      <path class="route bad" d="M257 435 C285 468 322 486 365 493"/>
+      <circle id="startPin" class="pin" cx="520" cy="425" r="9"/>
+    </svg>
+
+    <div class="map-top">
+      <div class="context-row">
+        <div class="context"><b>18.4°</b> dry</div>
+        <div class="context"><b>7 km/h</b> NW</div>
+        <div class="context good"><b>AQI 24</b> good</div>
+        <div class="context warn"><b>grass 12</b> low</div>
+      </div>
+      <div class="layers"><button class="active">AIR</button><button>ROUTE</button><button>SENSORS</button></div>
+    </div>
+
+    <div class="route-results" id="routeResults">
+      <div class="route-card active" onclick="selectRoute(this)">
+        <div class="route-head"><div class="route-name">01 · LOWEST MEASURED PM</div><div class="rank">BEST FIT</div></div>
+        <div class="route-stats"><div><b>8.1</b><span>km</span></div><div><b>43</b><span>min</span></div><div><b>+46</b><span>m</span></div><div><b>71%</b><span>measured</span></div></div>
+        <div class="route-note">Lower measured PM on 62% of comparable segments. <strong>29% unmeasured.</strong></div>
+      </div>
+      <div class="route-card" onclick="selectRoute(this)">
+        <div class="route-head"><div class="route-name">02 · RHINE LOOP</div><div class="rank muted">ALTERNATIVE</div></div>
+        <div class="route-stats"><div><b>8.4</b><span>km</span></div><div><b>45</b><span>min</span></div><div><b>+39</b><span>m</span></div><div><b>54%</b><span>measured</span></div></div>
+      </div>
+      <div class="route-card" onclick="selectRoute(this)">
+        <div class="route-head"><div class="route-name">03 · DIRECT LOOP</div><div class="rank muted">ALTERNATIVE</div></div>
+        <div class="route-stats"><div><b>7.9</b><span>km</span></div><div><b>42</b><span>min</span></div><div><b>+52</b><span>m</span></div><div><b>63%</b><span>measured</span></div></div>
+      </div>
+      <button class="primary" style="width:100%;margin-top:2px" onclick="openReport()">REVIEW THIS RUN →</button>
+    </div>
+  </main>
+</section>
+
+<div class="modal" id="reportModal">
+  <div class="report">
+    <div class="report-top"><div><div class="mono muted caps" style="font-size:9px;margin-bottom:5px">pre-run report</div><div class="report-title">Wettstein → Rhine east loop</div></div><button class="close" onclick="closeReport()">×</button></div>
+    <div class="report-grid">
+      <div class="main-report">
+        <div class="summary">
+          <div class="metric"><b>8.1 km</b><span>distance</span></div><div class="metric"><b>43 min</b><span>at 5:20 /km</span></div><div class="metric"><b>+46 m</b><span>ascent</span></div><div class="metric"><b>4.1%</b><span>max smoothed grade</span></div><div class="metric"><b>71%</b><span>air measured</span></div>
+        </div>
+        <div class="section-label">route air</div>
+        <div class="air-callout"><strong>Good conditions for this comparison.</strong> Of the three generated routes, this one spends the least distance on segments with higher measured PM2.5. 29% of the route has no nearby tram measurement and is not scored.</div>
+
+        <div class="section-label">elevation profile</div>
+        <div class="elev"><svg viewBox="0 0 640 130" preserveAspectRatio="none"><path d="M0 95 C60 90 90 62 150 70 S235 88 285 60 S350 42 410 63 S500 92 560 72 S610 58 640 64 L640 130 L0 130 Z" fill="rgba(78,158,134,.08)"/><path d="M0 95 C60 90 90 62 150 70 S235 88 285 60 S350 42 410 63 S500 92 560 72 S610 58 640 64" fill="none" stroke="#dce5e2" stroke-width="1.5"/><line x1="0" y1="105" x2="640" y2="105" stroke="#1E2C30"/><text x="0" y="122" fill="#657673" font-family="IBM Plex Mono" font-size="9">0 km</text><text x="305" y="122" fill="#657673" font-family="IBM Plex Mono" font-size="9">4 km</text><text x="604" y="122" fill="#657673" font-family="IBM Plex Mono" font-size="9">8 km</text></svg></div>
+
+        <div class="section-label">conditions at start · 16:20</div>
+        <div class="weather-line"><div class="wx"><b>18.4°C</b><span>temperature</span></div><div class="wx"><b>0%</b><span>rain next hour</span></div><div class="wx"><b>7 km/h</b><span>wind NW</span></div><div class="wx"><b>low</b><span>grass pollen</span></div></div>
+
+        <div class="report-actions"><button class="primary" onclick="fakeExport()">EXPORT GPX ↓</button><button class="secondary" onclick="closeReport()">CHANGE ROUTE</button></div>
+        <div class="disclaimer">runO2 compares route candidates against nearby measured city-air data. It does not estimate personal pollutant dose or make a health recommendation. Terrain elevation is approximate and grade is smoothed.</div>
+      </div>
+      <aside class="side-report">
+        <div class="section-label" style="margin-top:0">what this report knows</div>
+        <div class="prov">
+          <div class="prov-row"><div class="badge">measured</div><p>PM2.5 / PM10 observations attributed to nearby tram-network segments. Reading count and observation window travel with the value.</p></div>
+          <div class="prov-row"><div class="badge dynamic">dynamic</div><p>Distance, candidate route, estimated duration, ascent and route score calculated for this run request.</p></div>
+          <div class="prov-row"><div class="badge forecast">forecast</div><p>Temperature, precipitation, wind, AQI and pollen for the selected start time.</p></div>
+          <div class="prov-row"><div class="badge unmeasured">unmeasured</div><p>2.35 km of this route has no qualifying nearby tram measurement. It contributes no air score.</p></div>
+        </div>
+
+        <div class="section-label">route breakdown</div>
+        <div class="weather-line" style="grid-template-columns:1fr 1fr"><div class="wx"><b>84%</b><span>paved / hard</span></div><div class="wx"><b>16%</b><span>unknown surface</span></div><div class="wx"><b>5.7 km</b><span>near measured air</span></div><div class="wx"><b>2.4 km</b><span>unmeasured</span></div></div>
+
+        <div class="section-label">why route 01</div>
+        <div class="mono" style="font-size:10px;line-height:1.6;color:#8fa19d">01 has a slightly longer distance than the direct loop, but avoids two segments with consistently higher measured PM2.5 in the selected time window. Route 02 has less climbing but lower sensor coverage.</div>
+      </aside>
+    </div>
+  </div>
+</div>
+<script>
+const dist=document.getElementById('dist');
+dist.addEventListener('input',()=>{const v=(+dist.value).toFixed(1);document.getElementById('distanceValue').textContent=v;document.getElementById('distanceLabel').textContent=v+' km'});
+window.addEventListener('scroll',()=>{const y=Math.min(window.scrollY*.22,120);document.querySelector('.hero-media').style.setProperty('--hero-shift',y+'px')},{passive:true});
+function openReport(){document.getElementById('reportModal').classList.add('open')}
+function closeReport(){document.getElementById('reportModal').classList.remove('open')}
+function fakeExport(){alert('Mock: GPX export would start here — with provenance in <extensions>.')}
+function selectRoute(el){document.querySelectorAll('.route-card').forEach(x=>x.classList.remove('active'));el.classList.add('active')}
+function showRoutes(){const r=document.getElementById('routeResults');r.animate([{transform:'translateY(16px)',opacity:.35},{transform:'translateY(0)',opacity:1}],{duration:330,easing:'ease-out'})}
+function flashPin(){const p=document.getElementById('startPin');p.animate([{r:9,opacity:1},{r:18,opacity:.3},{r:9,opacity:1}],{duration:650})}
+document.getElementById('reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')closeReport()})
+</script>
+</body>
+</html>
