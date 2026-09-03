@@ -32,7 +32,7 @@ Reproduce: `python -m app.air.viability --csv data/raw/air/100113.csv`,
 | **Fixed microsensors** (`100081`, `100093`, `100275`) | measured, low-cost fixed | ~10 points citywide | continuous | n/a — point data | continuity, local context, validation | far too few points to route on | context, not routing |
 | **Reference stations** (`100049`, `100050`, `100048`, `100051`) | measured, reference-grade | 4 points | hourly, **live, updated today** | n/a — point data | the true current level; calibration ground truth | 4 locations for a 884 km network | the "what is the air doing right now" layer |
 | **Sensor comparison** (`100178`) | measured, sensor vs reference | 3 co-located sites | hourly, 2022‑02 → 2023‑06 | n/a — a calibration study | the only real error figure for this sensor class in Basel | different sensor model and years than the trams | the uncertainty statement |
-| **Federal PM2.5 model** (`ch.bafu.luftreinhaltung-feinstaub_pm2_5`) | **modelled** | **99.1%** of network, 100 m raster | annual mean, since 2015 | **1.00 µg/m³** | regional background | PM2.5 is largely regional — it barely varies within one city | weak baseline |
+| **Federal PM2.5 model** (`ch.bafu.luftreinhaltung-feinstaub_pm2_5`) | **modelled** | **99.2%** of network, 100 m raster | annual mean, since 2015 | **1.00 µg/m³** | regional background | PM2.5 is largely regional — it barely varies within one city | weak baseline |
 | **Federal NO₂ model** (`ch.bafu.luftreinhaltung-stickstoffdioxid`) | **modelled** | **99.5%** of network, **20 m raster** | annual mean, since 2020 at 20 m | **3.00 µg/m³** | traffic-related exposure at street scale | annual mean — no hour, no weather; pixels not valid for single addresses | **the spatial baseline runO2 ranks on** |
 | **Open-Meteo forecast + CAMS** | forecast | regional | hourly | n/a — one value for the city | temperature, rain, wind, AQI, pollen | cannot separate two streets in one city | the conditions layer |
 
@@ -88,7 +88,7 @@ by hour gives a real comparison. See `experiments/sensor_calibration.py`.
 | St. Johannplatz (`100049`) | 9,680 | 9.72 | 5.20 | **−3.07** | **4.65** | 5.79 | 0.898 | 1.41 |
 
 **What can be concluded.** These microsensors **under-report PM2.5 by roughly 3
-to 4.6 µg/m³ at the median** — a 30–37% underestimate against reference
+to 4.6 µg/m³ at the median** — a 32–37% underestimate against reference
 instruments — while tracking changes well (r ≈ 0.86–0.90). Slopes above 1 with
 large negative intercepts mean the under-reporting is worst at low
 concentrations. Typical absolute error for one hourly value is **4.7–5.9
@@ -120,8 +120,8 @@ in **EPSG:2056** — the metric CRS this project already projects into.
 | Spatial resolution | 100 m | **20 m** (since 2020; 200 m before) |
 | Temporal resolution | annual mean, since 2015 | annual mean, since 1990 |
 | Newest year | 2025 | 2025 |
-| Coverage of Basel's walking network | 99.1% | **99.5%** |
-| Range across the network | 8–13 µg/m³ | **11–51 µg/m³** |
+| Coverage of Basel's walking network | 99.2% | **99.5%** |
+| Range across the network | 8–13 µg/m³ | **8–48 µg/m³** (middle 80%: 11–20) |
 | Street contrast | 1.00 µg/m³ | **3.00 µg/m³** |
 | LRV annual limit | 10 µg/m³ | 30 µg/m³ |
 | Licence | free use with source citation | free use with source citation |

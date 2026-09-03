@@ -32,6 +32,11 @@ router = APIRouter(prefix="/run", tags=["run"])
 MIN_DISTANCE_M, MAX_DISTANCE_M = 1000, 25000
 MIN_PACE, MAX_PACE = 3.0, 12.0
 
+# Below this the difference between two candidates is not worth a sentence
+# claiming one avoids anything. Both the modelled raster and the routes are
+# coarser than a tenth of a microgram.
+MEANINGFUL_NO2_GAP = 0.2
+
 
 class Prepared(NamedTuple):
     """Everything the two endpoints need, built once."""
@@ -45,6 +50,7 @@ class Prepared(NamedTuple):
     source_provenance: dict
     baseline: dict                      # segment id -> modelled NO2
     baseline_provenance: Optional[dict]
+    names: dict                         # segment id -> street name, where OSM has one
 
 
 def _fixture_mode() -> bool:
@@ -70,6 +76,24 @@ def _load_network():
         return network, f"fixture grid: {provenance.get('fallback_reason', 'no prepared cache')}"
     edges = network.graph.number_of_edges()
     return network, f"prepared OSM walking network, {edges} segments"
+
+
+def _segment_names(network) -> dict:
+    """Street name per segment, so the explanation can name what it avoided.
+
+    About a third of the walking network carries a name in OpenStreetMap. The
+    rest stay anonymous rather than being given a plausible one.
+    """
+    from .attribute import segment_id
+    from .projection_compat import as_graph
+
+    graph = as_graph(network)
+    out = {}
+    for u, v, data in graph.edges(data=True):
+        name = (data.get("name") or "").strip()
+        if name:
+            out[segment_id(u, v)] = name
+    return out
 
 
 def _load_baseline(network):
@@ -101,9 +125,12 @@ def _load_air_source():
     if _fixture_mode():
         return FixtureAirSource(), "Synthetic air field — not measurements."
     if not TRAM_CACHE.exists():
+        # A relative path: this string is rendered in the browser, and the
+        # developer's home directory is nobody else's business.
         return FixtureAirSource(), (
-            "Synthetic air field — not measurements. No cached export at "
-            f"{TRAM_CACHE}; run `python -m app.air.prepare` to fetch dataset 100113."
+            "Synthetic air field — not measurements. No tram export cached yet; "
+            "run `python -m app.air.viability --csv data/raw/air/100113.csv` "
+            "to fetch dataset 100113. The modelled NO₂ ranking is unaffected."
         )
     from .sources.basel_tram import BaselTramAirSource
 
@@ -135,6 +162,7 @@ def _prepared() -> Prepared:
     return Prepared(
         network, segments, coverage, source, network_note, source_note,
         _source_provenance(source, readings), baseline, baseline_provenance,
+        _segment_names(network),
     )
 
 
@@ -228,44 +256,117 @@ def gpx(
     )
 
 
-def _why_this_route(chosen, alternatives) -> List[str]:
-    """Deterministic sentences from the comparison. No adjectives it cannot back."""
-    lines = []
+def _worst_named_stretch(exposure, names: dict, exclude: set) -> Optional[tuple]:
+    """The highest-NO2 named street on a route, ignoring segments in `exclude`.
+
+    Length-weighted, so a 400 m arterial outranks one 12 m connector that
+    happens to sit on a hot pixel.
+    """
+    by_street: dict = {}
+    for segment in exposure.segments:
+        if segment.baseline_no2 is None or segment.segment_id in exclude:
+            continue
+        name = names.get(segment.segment_id)
+        if not name:
+            continue
+        weight, total = by_street.get(name, (0.0, 0.0))
+        by_street[name] = (weight + segment.baseline_no2 * segment.length_m,
+                           total + segment.length_m)
+    scored = [(value / length, name, length)
+              for name, (value, length) in by_street.items() if length >= 80]
+    if not scored:
+        return None
+    level, name, length = max(scored)
+    return name, round(level, 1), round(length)
+
+
+def _why_this_route(chosen, alternatives, names: dict) -> List[str]:
+    """One or two sentences, every clause derived from a route metric.
+
+    No adjectives the numbers do not support, and no place name the route does
+    not actually run through.
+    """
+    lines: List[str] = []
     mine = chosen.exposure.baseline_no2_mean
-    others = [c.exposure.baseline_no2_mean for c in alternatives
-              if c.exposure.baseline_no2_mean is not None]
-    if mine is not None and others:
-        best_other = min(others)
-        delta = best_other - mine
-        if delta >= 0.1:
+    rivals = [c for c in alternatives if c.exposure.baseline_no2_mean is not None]
+
+    if mine is not None and rivals:
+        best = min(rivals, key=lambda c: c.exposure.baseline_no2_mean)
+        delta_km = (chosen.distance_m - best.distance_m) / 1000.0
+        gap = best.exposure.baseline_no2_mean - mine
+
+        # `gap` is signed: positive when this route beats the best alternative,
+        # negative when the reader has picked a worse one, which they are free
+        # to do. Three cases, and none of them may call a route "lowest" when
+        # it is not.
+        if gap <= -MEANINGFUL_NO2_GAP:
+            # This clause describes the *alternative*, so the sign flips:
+            # delta_km > 0 means the chosen route is the longer of the two,
+            # which makes the best candidate the shorter one.
+            trade = (
+                f"{abs(delta_km):.1f} km {'shorter' if delta_km > 0 else 'longer'}"
+                if abs(delta_km) >= 0.1 else "the same distance"
+            )
             lines.append(
-                f"Modelled annual-mean NO2 along this loop is {mine:.1f} ug/m3, "
-                f"{delta:.1f} lower than the next candidate."
+                f"Modelled NO₂ along this loop averages {mine:.1f} µg/m³, "
+                f"{abs(gap):.1f} higher than the best candidate — which is "
+                f"{trade}. This is the trade you are making."
+            )
+        elif gap < MEANINGFUL_NO2_GAP:
+            # A route can beat the worst candidate handily and still be a
+            # coin-flip against the runner-up; saying "avoids X" on a 0.1 ug/m3
+            # margin would dress a tie as a decision.
+            lines.append(
+                f"Modelled NO₂ along this loop is within {max(abs(gap), 0.1):.1f} "
+                f"µg/m³ of the best candidate — on air, the choice barely "
+                f"matters here."
             )
         else:
-            lines.append(
-                f"All candidates sit within {max(others + [mine]) - min(others + [mine]):.1f} "
-                f"ug/m3 of each other on modelled NO2. On air, this choice barely matters."
+            avoided = _worst_named_stretch(
+                best.exposure, names, {s.segment_id for s in chosen.exposure.segments}
             )
+            if avoided:
+                street, level, metres = avoided
+                # The connector belongs to the branch: "for 0.4 km more distance
+                # THAN" but "at the same distance AS".
+                trade = (
+                    f"for {abs(delta_km):.1f} km "
+                    f"{'more' if delta_km > 0 else 'less'} distance than"
+                    if abs(delta_km) >= 0.1 else "at the same distance as"
+                )
+                lines.append(
+                    f"Avoids {metres} m of {street}, where the model puts NO₂ at "
+                    f"{level} µg/m³ — {trade} the next-best candidate, "
+                    f"and {gap:.1f} µg/m³ lower across the whole loop."
+                )
+            else:
+                lines.append(
+                    f"Modelled NO₂ along this loop averages {mine:.1f} µg/m³, "
+                    f"{gap:.1f} lower than the next-best candidate."
+                )
+    elif mine is not None:
+        lines.append(
+            f"Modelled NO₂ along this loop averages {mine:.1f} µg/m³. No "
+            f"alternative was generated to compare it against."
+        )
+    else:
+        lines.append("This route has the lowest current score among the generated candidates.")
+
+    # Corroboration, kept to one sentence and never allowed to look like the ranking.
     measured = chosen.exposure.mean_concentration
     share = chosen.exposure.measured_share
     if measured is not None:
         lines.append(
-            f"Tram sensors measured {share * 100:.0f}% of this route, averaging "
-            f"{measured:.1f} ug/m3 PM2.5 there in the 2019-20 campaign. That is a "
-            f"historical record, not today's air, and the sensors disagree with "
-            f"each other by more than streets differ - so it corroborates the "
-            f"ranking rather than setting it."
+            f"Tram sensors covered {share * 100:.0f}% of it, averaging {measured:.1f} "
+            f"µg/m³ PM2.5 there in the 2019–20 campaign — a historical "
+            f"record that corroborates the ranking rather than setting it. The other "
+            f"{(1 - share) * 100:.0f}% was never measured, which is not the same as clean."
         )
     else:
         lines.append(
-            "No tram sensor ever passed this route. Unmeasured, which is not the "
-            "same as clean."
+            "No tram sensor ever passed this route. Entirely unmeasured, which is "
+            "not the same as clean."
         )
-    lines.append(
-        f"{(1 - share) * 100:.0f}% of the route has no measurement of any kind and "
-        f"contributes nothing to the measured figure."
-    )
     return lines
 
 
@@ -305,7 +406,7 @@ def report(
         },
         "air": chosen.exposure.as_dict(),
         "why_this_route": _why_this_route(
-            chosen, [c for i, c in enumerate(candidates) if i != index]
+            chosen, [c for i, c in enumerate(candidates) if i != index], prepared.names
         ),
         "alternatives": [
             {
