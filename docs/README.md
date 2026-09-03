@@ -1,39 +1,40 @@
-# runO2
+# runO2 — concept and design direction
 
-**Basel's trams measure the air. runO2 helps you plan a run around what they measured.**
+**Basel's trams measured the air. runO2 asks whether that data can plan a run.**
 
-runO2 is a Hack am Rhein warm-up project built on the Basel Spatial Graph. The intended product is a simple running-loop planner: choose a start point, distance and time; compare a small set of plausible loops by measured air-quality conditions; inspect weather, pollen, elevation and measurement coverage; then export the selected route as GPX.
+This directory holds the product thinking. The implementation, the evidence and
+the data analysis live in `../basel-spatial-graph-main/basel-spatial-graph-v0/`.
 
-## Current state
+## Files
 
-The repository currently contains:
+- `runO2-ux-mock.html` — UX direction: cinematic intro, map-first planner, route
+  alternatives, pre-run report. Implemented in `app/static/run.html`.
+- `basel-wetter.html` — visual and data reference for the conditions layer.
+  Implemented, narrowed to run-relevant values, in `app/air/conditions.py`.
+- `clean-air-run-concept.json` — product concept, viability gate, provenance
+  model, MVP scope.
+- `deferred-extensions.json` — ideas deliberately not built, to stop scope creep.
+- `STATUS.md` — where the build actually is, and the proposed repo cleanup.
 
-- `basel-spatial-graph-clean-air-run.zip` — Claude-generated implementation package, still compressed and pending import into the repository tree.
-- `docs/clean-air-run-concept.json` — product concept, viability gate, provenance model and MVP scope.
-- `docs/deferred-extensions.json` — explicitly deferred ideas to prevent scope creep before the warm-up ships.
-- `docs/runO2-ux-mock.html` — UX direction: cinematic intro, map-first planner, route alternatives and pre-run report.
-- `docs/basel-wetter-reference.html` — visual/data reference for weather and air-quality integration.
-
-## Product direction
-
-The core interaction should stay narrow:
+## The interaction
 
 1. Pick a start point.
-2. Choose how long/far you want to run and when.
-3. Generate a few candidate loops.
-4. Compare measured air conditions and measurement coverage.
-5. Review a pre-run brief with weather, pollen and elevation.
-6. Export GPX and go.
+2. Choose distance, pace and hour.
+3. Generate candidate loops.
+4. Compare air quality and measurement coverage.
+5. Review a pre-run report: air, conditions, pollen, terrain, provenance.
+6. Export GPX.
 
-The differentiator is not generic route planning. It is the join between Basel air-quality measurements and the existing deterministic street graph, with provenance carried through every result. Unmeasured streets must remain visibly unmeasured.
+## What the project turned out to be about
 
-## Immediate next steps
+The differentiator was never route planning. It is the join between Basel's open
+air data and a deterministic street graph, with provenance carried through every
+result — and, as it turned out, an honest account of where that data stops being
+able to answer.
 
-1. Unpack `basel-spatial-graph-clean-air-run.zip` into the repo root and inspect the generated implementation before changing architecture.
-2. Run the existing tests / app locally and document what actually works.
-3. Execute the air-data viability gate before investing in route optimisation.
-4. Wire the UI around the smallest successful loop-generation and scoring path.
-5. Add weather, pollen and elevation only after the core route comparison works.
-6. Finish GPX export and provenance rendering.
+The tram dataset inspired the project and cannot carry it: two sensors on the
+same street in the same hour disagree by more than two different streets do.
+That finding is the product as much as the planner is. Both halves ship
+together, in one page.
 
-See `docs/clean-air-run-concept.json` for the build sequence and scope boundaries.
+See **`../basel-spatial-graph-main/basel-spatial-graph-v0/docs/DATA_FIT.md`**.

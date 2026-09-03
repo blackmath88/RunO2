@@ -3,230 +3,444 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clean Air Run — Basel</title>
+<title>runO2 — Basel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-  :root {
-    --ink: #16181d; --muted: #6b7280; --line: #e3e5ea; --bg: #fbfbfa;
-    --measured: #2f7d63; --unmeasured: #9aa1ad; --dynamic: #7a5ea8; --warn: #b4532a;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-         color: var(--ink); background: var(--bg); }
-  header { padding: 20px 18px 12px; border-bottom: 1px solid var(--line); }
-  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.01em; }
-  .lede { margin: 0; color: var(--muted); max-width: 60ch; }
-  main { padding: 16px 18px 60px; max-width: 900px; margin: 0 auto; }
-  #map { height: 55vh; min-height: 320px; border: 1px solid var(--line); border-radius: 6px; }
-  .controls { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
-  .control { flex: 1 1 180px; }
-  label { display: block; font-size: 12px; text-transform: uppercase;
-          letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
-  input[type=range] { width: 100%; }
-  .value { font-variant-numeric: tabular-nums; font-weight: 600; }
-  .loops { display: grid; gap: 10px; margin-top: 12px; }
-  .loop { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px;
-          background: #fff; cursor: pointer; }
-  .loop[aria-selected=true] { border-color: var(--measured); box-shadow: 0 0 0 1px var(--measured); }
-  .loop h3 { margin: 0 0 6px; font-size: 15px; }
-  .stat { display: inline-block; margin-right: 16px; font-variant-numeric: tabular-nums; }
-  .stat span { color: var(--muted); font-size: 12px; display: block; }
-  .badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 3px;
-           border: 1px solid currentColor; text-transform: lowercase; }
-  .measured { color: var(--measured); } .unmeasured { color: var(--unmeasured); }
-  .dynamic { color: var(--dynamic); }
-  .coverage { margin-top: 6px; font-size: 13px; color: var(--muted); }
-  .notice { border-left: 3px solid var(--warn); padding: 8px 12px; margin: 12px 0;
-            background: #fff; color: var(--warn); font-size: 13px; }
-  .hours { display: flex; gap: 2px; margin-top: 8px; }
-  .hours button { flex: 1; border: 1px solid var(--line); background: #fff; padding: 6px 0;
-                  font-size: 11px; cursor: pointer; border-radius: 2px; }
-  .hours button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-  button.primary { background: var(--ink); color: #fff; border: 0; padding: 9px 16px;
-                   border-radius: 4px; cursor: pointer; font-size: 14px; }
-  footer { border-top: 1px solid var(--line); margin-top: 32px; padding-top: 14px;
-           font-size: 13px; color: var(--muted); }
-  .legend { font-size: 12px; color: var(--muted); margin-top: 8px; }
-  .leaflet-tooltip.prov { font-size: 12px; line-height: 1.4; max-width: 260px; }
-  .leaflet-tooltip.prov b { display: block; }
+:root{
+  --paper:#0B1114; --panel:#101A1E; --panel2:#0E171A; --ink:#DCE5E2; --dim:#7C8D8B;
+  --faint:#3B4A4C; --line:#1E2C30; --green:#4E9E86; --green2:#73B39E; --amber:#C9A227;
+  --orange:#D6721F; --red:#D6301F; --blue:#6B96AE; --white:#F4F7F6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif}
+button,input{font:inherit}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.caps{letter-spacing:.14em;text-transform:uppercase}
+.muted{color:var(--dim)}
+a{color:var(--green2)}
+
+/* ---------- intro ---------- */
+.hero{height:100vh;min-height:640px;position:relative;overflow:hidden;background:#091013;display:flex;align-items:flex-end}
+.hero-media{position:absolute;inset:-8%;transform:translateY(var(--hero-shift,0px)) scale(1.08);transition:transform .08s linear;filter:saturate(.65) contrast(1.1)}
+.hero-media:before{content:"";position:absolute;inset:0;background:
+  radial-gradient(circle at 70% 45%,rgba(78,158,134,.22),transparent 26%),
+  radial-gradient(circle at 25% 65%,rgba(214,48,31,.10),transparent 24%),
+  linear-gradient(105deg,#152225 0%,#0D1619 44%,#18282C 70%,#091013 100%)}
+.hero-media:after{content:"";position:absolute;left:58%;top:17%;width:13vw;height:58vh;min-width:120px;min-height:400px;border-radius:55% 42% 34% 42%;background:linear-gradient(160deg,rgba(220,229,226,.12),rgba(220,229,226,.015));transform:rotate(-8deg);filter:blur(1px);box-shadow:-80px 100px 0 -25px rgba(220,229,226,.055),40px 185px 0 -33px rgba(220,229,226,.05)}
+.hero-grain{position:absolute;inset:0;opacity:.14;mix-blend-mode:soft-light;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E")}
+.hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,13,15,.1),rgba(8,13,15,.25) 48%,rgba(8,13,15,.94) 100%)}
+.topbar{position:absolute;z-index:5;left:0;right:0;top:0;padding:24px 34px;display:flex;justify-content:space-between;align-items:center;font-family:"IBM Plex Mono";font-size:11px;color:#cbd7d3}
+.logo{font-size:18px;letter-spacing:-.02em}.logo b{font-weight:500}.logo sub{color:var(--green);font-size:12px}
+.top-meta{display:flex;gap:20px;color:#9dafaa}
+.hero-copy{z-index:4;position:relative;width:min(920px,calc(100% - 64px));margin:0 0 8vh 7vw}
+.eyebrow{font-family:"IBM Plex Mono";font-size:11px;color:var(--green2);letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+.hero h1{font-size:clamp(46px,7.5vw,104px);line-height:.9;letter-spacing:-.055em;font-weight:300;margin:0;max-width:930px}
+.hero h1 em{font-style:normal;color:#82938f}
+.hero p{font-family:"IBM Plex Mono";font-size:14px;line-height:1.6;max-width:600px;color:#9fb0ac;margin:28px 0 30px}
+.cta{border:1px solid rgba(220,229,226,.32);background:rgba(11,17,20,.25);color:var(--ink);padding:12px 18px;border-radius:2px;cursor:pointer;font-family:"IBM Plex Mono";font-size:12px;letter-spacing:.04em;backdrop-filter:blur(8px);text-decoration:none;display:inline-block}
+.cta:hover{border-color:var(--green);background:rgba(78,158,134,.08)}
+.cta+.cta{margin-left:8px}
+.scrollhint{position:absolute;z-index:5;right:34px;bottom:34px;font-family:"IBM Plex Mono";font-size:10px;color:#657673;writing-mode:vertical-rl;letter-spacing:.13em}
+
+/* ---------- planner ---------- */
+.planner{height:100vh;min-height:720px;display:grid;grid-template-columns:360px 1fr;background:var(--paper);border-top:1px solid #152227}
+.sidebar{background:var(--paper);border-right:1px solid var(--line);padding:22px 22px 18px;display:flex;flex-direction:column;overflow:auto}
+.sidebar-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.sidebar .logo{font-family:"IBM Plex Mono"}
+.city{font-family:"IBM Plex Mono";font-size:10px;color:var(--dim);text-align:right;line-height:1.55}
+.step{padding:18px 0;border-bottom:1px solid var(--line)}
+.step-title{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between}
+.question{font-size:21px;line-height:1.2;font-weight:400;margin-bottom:15px}
+.fake-input{border:1px solid var(--line);padding:10px 11px;font-family:"IBM Plex Mono";font-size:12px;color:#aebdb9;display:flex;justify-content:space-between;gap:10px;background:var(--panel2)}
+.fake-input strong{font-weight:400;color:var(--ink)}
+.segmented{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line)}
+.segmented button{background:none;color:var(--dim);border:0;border-right:1px solid var(--line);padding:9px 4px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}
+.segmented button:last-child{border-right:0}
+.segmented button.active{background:var(--green);color:#07110E}
+.range-line{display:flex;align-items:center;gap:12px;margin-top:14px}
+.range-line input{flex:1;accent-color:var(--green)}
+.range-value{font-family:"IBM Plex Mono";font-size:18px;min-width:64px;text-align:right}
+.plan-btn{margin-top:auto;background:var(--white);color:#07100d;border:0;padding:13px 14px;font-family:"IBM Plex Mono";font-size:12px;font-weight:500;cursor:pointer}
+.plan-btn:hover{background:#dbe7e3}
+.plan-btn[disabled]{opacity:.5;cursor:progress}
+
+.map{position:relative;overflow:hidden;background:#0d1518}
+#map{position:absolute;inset:0}
+.leaflet-container{background:#0d1518}
+.leaflet-tile{filter:invert(1) hue-rotate(185deg) brightness(.72) contrast(1.05) saturate(.55)}
+.map-top{position:absolute;left:20px;right:20px;top:18px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:500;gap:10px}
+.context-row{display:flex;gap:7px;flex-wrap:wrap}
+.context{pointer-events:auto;background:rgba(11,17,20,.88);border:1px solid var(--line);padding:8px 9px;backdrop-filter:blur(7px);font-family:"IBM Plex Mono";font-size:10px;color:#9caeaa}
+.context b{font-size:12px;color:var(--ink);font-weight:400;margin-right:5px}
+.context.good b{color:var(--green2)}.context.warn b{color:var(--amber)}
+.layers{pointer-events:auto;background:rgba(11,17,20,.88);border:1px solid var(--line);padding:5px;display:flex;gap:3px}
+.layers button{border:0;background:none;color:var(--dim);font-family:"IBM Plex Mono";font-size:9px;padding:5px 6px;cursor:pointer}
+.layers button.active{color:var(--ink);background:#172327}
+.route-results{position:absolute;right:18px;bottom:18px;width:325px;display:grid;gap:8px;z-index:500}
+.route-card{background:rgba(11,17,20,.92);border:1px solid var(--line);backdrop-filter:blur(9px);padding:12px 13px;cursor:pointer;transition:.15s}
+.route-card:hover,.route-card.active{border-color:#39675a;transform:translateY(-1px)}
+.route-card.active{background:rgba(14,31,26,.94)}
+.route-head{display:flex;justify-content:space-between;align-items:baseline}
+.route-name{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em}
+.rank{font-family:"IBM Plex Mono";font-size:9px;color:var(--green2)}
+.route-stats{margin-top:7px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;font-family:"IBM Plex Mono"}
+.route-stats b{display:block;font-size:13px;font-weight:400}
+.route-stats span{font-size:8px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.route-note{font-family:"IBM Plex Mono";font-size:9px;color:var(--dim);margin-top:7px;line-height:1.5}
+.route-note strong{color:var(--amber);font-weight:400}
+.coverage-bar{height:3px;background:#22333a;margin-top:8px;display:flex;overflow:hidden}
+.coverage-bar i{display:block;height:100%}
+.notice{position:absolute;left:20px;bottom:18px;max-width:330px;background:rgba(11,17,20,.92);border:1px solid var(--line);border-left:2px solid var(--amber);padding:10px 12px;font-family:"IBM Plex Mono";font-size:10px;line-height:1.55;color:#9caeaa;z-index:500}
+
+/* ---------- report ---------- */
+.modal{position:fixed;inset:0;z-index:2000;background:rgba(3,7,8,.72);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:28px}
+.modal.open{display:flex}
+.report{width:min(1000px,96vw);max-height:92vh;overflow:auto;background:var(--paper);border:1px solid #2a3a3e;box-shadow:0 25px 90px rgba(0,0,0,.55)}
+.report-top{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.report-title{font-size:22px;font-weight:400}
+.close{border:1px solid var(--line);color:var(--dim);background:none;width:34px;height:34px;cursor:pointer}
+.close:hover{color:var(--ink)}
+.report-grid{display:grid;grid-template-columns:1.2fr .8fr}
+.main-report{padding:22px}
+.side-report{padding:22px;border-left:1px solid var(--line);background:#0D1518}
+.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:22px}
+.metric{border-top:1px solid var(--line);padding-top:8px}
+.metric b{font-family:"IBM Plex Mono";font-size:19px;font-weight:300}
+.metric span{display:block;color:var(--dim);font-family:"IBM Plex Mono";font-size:8px;letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.section-label{font-family:"IBM Plex Mono";font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;margin:18px 0 10px}
+.elev{height:120px;border-bottom:1px solid var(--line);position:relative}
+.elev svg{width:100%;height:100%}
+.weather-line{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.wx{border-top:1px solid var(--line);padding-top:8px}
+.wx b{font-family:"IBM Plex Mono";font-size:16px;font-weight:300}
+.wx span{display:block;color:var(--dim);font-family:"IBM Plex Mono";font-size:8px;text-transform:uppercase;margin-top:3px}
+.air-callout{border:1px solid #31594d;background:#0d1d19;padding:13px 14px;font-family:"IBM Plex Mono";font-size:11px;line-height:1.6}
+.air-callout strong{font-weight:400;color:var(--green2)}
+.air-callout p{margin:0 0 8px}.air-callout p:last-child{margin:0}
+.prov{display:grid;gap:10px}
+.prov-row{display:grid;grid-template-columns:88px 1fr;gap:10px;font-family:"IBM Plex Mono";font-size:9px}
+.badge{color:var(--green2);text-transform:uppercase;letter-spacing:.08em}
+.badge.dynamic{color:#9db6c3}.badge.forecast{color:#c6af60}.badge.unmeasured{color:#cf8353}.badge.modelled{color:#8fa9bd}
+.prov-row p{margin:0;color:#8b9b98;line-height:1.5}
+.report-actions{display:flex;gap:8px;margin-top:24px}
+.primary{background:var(--white);color:#07100d;border:0;padding:11px 13px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}
+.secondary{background:none;color:var(--ink);border:1px solid var(--line);padding:11px 13px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}
+.disclaimer{font-family:"IBM Plex Mono";font-size:9px;color:#566765;line-height:1.6;margin-top:20px}
+
+/* ---------- the data story ---------- */
+.story{padding:110px 7vw;border-top:1px solid var(--line);max-width:1180px}
+.story h2{font-size:clamp(30px,4.2vw,52px);font-weight:300;letter-spacing:-.03em;line-height:1.05;margin:0 0 22px;max-width:20ch}
+.story .lede{font-family:"IBM Plex Mono";font-size:14px;line-height:1.75;color:#9fb0ac;max-width:66ch;margin:0 0 46px}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:60px}
+.act{background:var(--paper);padding:20px 18px}
+.act .n{font-family:"IBM Plex Mono";font-size:9px;color:var(--green2);letter-spacing:.14em;margin-bottom:10px}
+.act h3{font-size:16px;font-weight:400;margin:0 0 8px;line-height:1.25}
+.act p{font-family:"IBM Plex Mono";font-size:10.5px;line-height:1.65;color:var(--dim);margin:0}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:58px}
+.gate{border:1px solid var(--line);padding:16px 17px;background:var(--panel2)}
+.gate .g-label{font-family:"IBM Plex Mono";font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:12px;display:flex;justify-content:space-between}
+.gate .g-verdict{font-family:"IBM Plex Mono";font-size:10px;padding:1px 6px;border:1px solid currentColor}
+.pass{color:var(--green2)}.fail{color:var(--orange)}
+.gate .g-value{font-family:"IBM Plex Mono";font-size:30px;font-weight:300;line-height:1}
+.gate .g-unit{font-family:"IBM Plex Mono";font-size:10px;color:var(--dim);margin-top:6px}
+.gate p{font-family:"IBM Plex Mono";font-size:10px;line-height:1.6;color:var(--dim);margin:12px 0 0}
+h3.sec{font-size:22px;font-weight:400;margin:0 0 8px;letter-spacing:-.01em}
+p.sec{font-family:"IBM Plex Mono";font-size:12px;line-height:1.7;color:var(--dim);max-width:70ch;margin:0 0 26px}
+.bars{display:grid;gap:14px;margin-bottom:20px}
+.bar-row{display:grid;grid-template-columns:230px 1fr 92px;gap:14px;align-items:center;font-family:"IBM Plex Mono";font-size:11px}
+.bar-row .lab{color:var(--ink)}.bar-row .lab i{display:block;font-style:normal;color:var(--dim);font-size:9px;margin-top:3px}
+.track{height:22px;background:#131F23;position:relative;overflow:hidden}
+.track i{position:absolute;left:0;top:0;bottom:0;display:block}
+.bar-row .num{text-align:right;font-size:14px;font-weight:300}
+.legend-note{font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);line-height:1.6;margin:0 0 58px}
+.stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.layer{background:var(--paper);padding:20px 18px}
+.layer .tag{font-family:"IBM Plex Mono";font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:11px}
+.layer h4{font-size:15px;font-weight:400;margin:0 0 7px}
+.layer p{font-family:"IBM Plex Mono";font-size:10px;line-height:1.6;color:var(--dim);margin:0 0 9px}
+.layer .no{font-family:"IBM Plex Mono";font-size:9.5px;line-height:1.55;color:var(--faint);border-top:1px solid var(--line);padding-top:9px;margin:0}
+table.fit{width:100%;border-collapse:collapse;font-family:"IBM Plex Mono";font-size:10.5px;margin:8px 0 14px}
+table.fit th,table.fit td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.fit th{color:var(--dim);font-weight:400;font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+table.fit td b{font-weight:400;color:var(--ink)}
+.scroll-x{overflow-x:auto}
+footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);line-height:1.8}
+
+@media(max-width:900px){
+  .planner{height:auto;grid-template-columns:1fr}
+  .sidebar{border-right:0;border-bottom:1px solid var(--line)}
+  .map{height:74vh;min-height:520px}
+  .route-results{left:12px;right:12px;width:auto;bottom:12px}
+  .route-card:not(.active){display:none}
+  .notice{position:static;max-width:none;margin:12px}
+  .report-grid{grid-template-columns:1fr}
+  .side-report{border-left:0;border-top:1px solid var(--line)}
+  .summary{grid-template-columns:repeat(3,1fr)}
+  .hero-copy{margin-left:26px;width:calc(100% - 52px)}
+  .topbar{padding:20px}.top-meta{display:none}
+  .bar-row{grid-template-columns:1fr;gap:6px}
+  .story{padding:70px 24px}
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>Clean Air Run</h1>
-  <p class="lede">Basel's trams carry air sensors as they cross the city. This plans a
-  running loop around what they measured — and shows you which streets nobody has
-  ever measured at all.</p>
-</header>
 
-<main>
-  <div id="notice"></div>
-  <div id="map"></div>
-  <p class="legend">
-    <span class="badge measured">measured</span>
-    a sensor passed this street ·
-    <span class="badge unmeasured">unmeasured</span>
-    no sensor ever did — unknown, not clean ·
-    <span class="badge dynamic">dynamic</span>
-    computed for your pace and hour
-  </p>
+<!-- ============ ACT 1 : INTRO ============ -->
+<section class="hero">
+  <div class="hero-media"></div>
+  <div class="hero-grain"></div>
+  <div class="hero-shade"></div>
+  <div class="topbar">
+    <div class="logo mono">run<b>O</b><sub>2</sub></div>
+    <div class="top-meta mono"><span>BASEL / 47.56° N</span><span id="heroDate">—</span></div>
+  </div>
+  <div class="hero-copy">
+    <div class="eyebrow">Hack am Rhein · warm-up</div>
+    <h1>Basel's trams<br>measure the air.<br><em>What does your route pass through?</em></h1>
+    <p>Plan a running loop around distance, conditions and what the city's open air
+       data can actually tell you. Unmeasured streets stay unmeasured — and we show
+       you exactly where the data stops being able to answer.</p>
+    <a class="cta" href="#planner">PLAN A RUN ↓</a>
+    <a class="cta" href="#data">UNDERSTAND THE DATA ↓</a>
+  </div>
+  <div class="scrollhint mono">SCROLL TO ROUTE</div>
+</section>
 
-  <div class="controls">
-    <div class="control">
-      <label for="dist">Distance <span class="value" id="distOut">5.0 km</span></label>
-      <input type="range" id="dist" min="1" max="20" step="0.5" value="5">
+<!-- ============ ACT 2 : PLANNER ============ -->
+<section class="planner" id="planner">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo mono">run<b>O</b><sub>2</sub></div>
+      <div class="city">BASEL<br><span id="sideDate">—</span></div>
     </div>
-    <div class="control">
-      <label for="pace">Pace <span class="value" id="paceOut">6:00 /km</span></label>
-      <input type="range" id="pace" min="3.5" max="9" step="0.25" value="6">
+
+    <div class="step">
+      <div class="step-title"><span>01 / start</span><span id="startMode">map input</span></div>
+      <div class="question">Where do you start?</div>
+      <div class="fake-input"><strong id="startLabel">Wettsteinplatz</strong>
+        <span class="muted">click the map</span></div>
     </div>
-    <div class="control">
-      <label>Time of day <span class="value" id="hourOut">any</span></label>
-      <div class="hours" id="hours"></div>
+
+    <div class="step">
+      <div class="step-title"><span>02 / distance</span><span id="distLabel">8.0 km</span></div>
+      <div class="question">How long do you want to run?</div>
+      <div class="segmented" id="distPresets">
+        <button data-km="5">5 km</button><button data-km="8" class="active">8 km</button>
+        <button data-km="10">10 km</button><button data-km="15">15 km</button>
+      </div>
+      <div class="range-line">
+        <span class="mono muted">3</span>
+        <input type="range" id="dist" min="3" max="20" step="0.5" value="8">
+        <span class="range-value" id="distValue">8.0</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span>03 / pace</span><span id="paceLabel">6:00 /km</span></div>
+      <div class="question">How fast?</div>
+      <div class="range-line">
+        <span class="mono muted">3:30</span>
+        <input type="range" id="pace" min="3.5" max="9" step="0.25" value="6">
+        <span class="range-value" id="paceValue">6:00</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span>04 / when</span><span class="muted">hour of day</span></div>
+      <div class="segmented" id="hours">
+        <button data-hour="" class="active">NOW</button><button data-hour="7">07</button>
+        <button data-hour="12">12</button><button data-hour="17">17</button>
+      </div>
+    </div>
+
+    <button class="plan-btn" id="planBtn">FIND 3 ROUTES →</button>
+  </aside>
+
+  <div class="map">
+    <div id="map"></div>
+    <div class="map-top">
+      <div class="context-row" id="contextRow"></div>
+      <div class="layers" id="layerToggle">
+        <button data-layer="air" class="active">AIR</button>
+        <button data-layer="route">ROUTE</button>
+        <button data-layer="measured">MEASURED</button>
+      </div>
+    </div>
+    <div class="route-results" id="routeResults"></div>
+    <div class="notice" id="notice" hidden></div>
+  </div>
+</section>
+
+<!-- ============ PRE-RUN REPORT ============ -->
+<div class="modal" id="reportModal">
+  <div class="report">
+    <div class="report-top">
+      <div>
+        <div class="mono muted" style="font-size:9px;letter-spacing:.14em;text-transform:uppercase">pre-run report</div>
+        <div class="report-title" id="reportTitle">Your run</div>
+      </div>
+      <button class="close" onclick="closeReport()">×</button>
+    </div>
+    <div class="report-grid">
+      <div class="main-report">
+        <div class="summary" id="reportSummary"></div>
+        <div class="section-label">route air</div>
+        <div class="air-callout" id="reportAir"></div>
+        <div class="section-label">elevation profile</div>
+        <div class="elev" id="reportElev"></div>
+        <div class="mono muted" id="elevAxis" style="font-size:9px;display:flex;justify-content:space-between;margin-top:6px"></div>
+        <div class="section-label">conditions at start</div>
+        <div class="weather-line" id="reportWeather"></div>
+        <div class="report-actions">
+          <button class="primary" id="exportBtn">EXPORT GPX ↓</button>
+          <button class="secondary" onclick="closeReport()">CHANGE ROUTE</button>
+        </div>
+        <p class="disclaimer">runO2 compares route candidates against open city air data.
+          It does not estimate personal pollutant dose and makes no health recommendation.
+          Terrain elevation is approximate and grade is smoothed.</p>
+      </div>
+      <div class="side-report">
+        <div class="section-label">what this report knows</div>
+        <div class="prov" id="reportProv"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ACTS 3–5 : THE DATA ============ -->
+<section class="story" id="data">
+  <h2>Can this dataset actually power the product?</h2>
+  <p class="lede">runO2 started from a good idea: Basel put particulate sensors on tram
+    roofs and published the readings. We built the planner, then tested whether the data
+    can carry it. It cannot — and the reason is more interesting than the idea was.</p>
+
+  <div class="acts">
+    <div class="act"><div class="n">ACT 1</div><h3>The trams measure the air</h3>
+      <p>Five microsensors on BVB tram roofs. 613,723 readings of PM2.5 and PM10, each with a position and a timestamp.</p></div>
+    <div class="act"><div class="n">ACT 2</div><h3>Can we plan a run on it?</h3>
+      <p>Join the readings to the 884 km walking network, score candidate loops, keep unmeasured streets visibly unmeasured.</p></div>
+    <div class="act"><div class="n">ACT 3</div><h3>Partly</h3>
+      <p>The temporal signal is real: street rankings genuinely change between morning and evening. That much the data supports.</p></div>
+    <div class="act"><div class="n">ACT 4</div><h3>But not where it counts</h3>
+      <p>Two sensors on the same street in the same hour disagree by more than two different streets differ. The ranking would be noise.</p></div>
+    <div class="act"><div class="n">ACT 5</div><h3>So what would work?</h3>
+      <p>A federal 20 m NO₂ model covers 99.5% of the network with 6× the street contrast — and it is current.</p></div>
+  </div>
+
+  <h3 class="sec">The three gates</h3>
+  <p class="sec">Run before building anything on top of the data. A failing gate is a good
+    outcome: it is cheaper to learn in an hour that a dataset cannot carry a
+    recommendation than to discover it after building an interface around one.</p>
+  <div class="verdict">
+    <div class="gate">
+      <div class="g-label"><span>temporal</span><span class="g-verdict pass">PASSES</span></div>
+      <div class="g-value">0.27</div>
+      <div class="g-unit">rank disagreement, 08h vs 17h · threshold 0.25</div>
+      <p>Segment rankings really do change by hour. An hour-of-day control is justified.</p>
+    </div>
+    <div class="gate">
+      <div class="g-label"><span>coverage</span><span class="g-verdict fail">THIN</span></div>
+      <div class="g-value">19.2%</div>
+      <div class="g-unit">of 884 km walking network, by length</div>
+      <p>Sensors ride on trams, so coverage follows the tram network. Four fifths of Basel was never measured.</p>
+    </div>
+    <div class="gate">
+      <div class="g-label"><span>resolution</span><span class="g-verdict fail">FAILS</span></div>
+      <div class="g-value">0.36</div>
+      <div class="g-unit">signal ÷ noise · needs ≥ 1.0</div>
+      <p>Two streets differ by 0.51 µg/m³. Two sensors on the same street in the same hour differ by 1.41. The signal sits under the noise.</p>
     </div>
   </div>
 
-  <div class="loops" id="loops"></div>
-  <div class="actions">
-    <button class="primary" id="gpx">Download GPX</button>
+  <h3 class="sec">Signal against noise</h3>
+  <p class="sec">One statistic, every source: the median difference between two randomly
+    chosen Basel streets. For the tram data, set beside the median disagreement between two
+    sensors observing the <em>same</em> street in the same hour.</p>
+  <div class="bars">
+    <div class="bar-row">
+      <div class="lab">Tram PM2.5 — between two streets<i>measured, 19.2% of network, 2019–20</i></div>
+      <div class="track"><i style="width:17%;background:var(--orange)"></i></div>
+      <div class="num">0.51</div>
+    </div>
+    <div class="bar-row">
+      <div class="lab">Tram PM2.5 — between two sensors, same street<i>this is the noise floor the signal must clear</i></div>
+      <div class="track"><i style="width:47%;background:var(--red);opacity:.75"></i></div>
+      <div class="num">1.41</div>
+    </div>
+    <div class="bar-row">
+      <div class="lab">Federal PM2.5 model — between two streets<i>modelled, 100 m raster, 99.1% of network</i></div>
+      <div class="track"><i style="width:33%;background:var(--blue)"></i></div>
+      <div class="num">1.00</div>
+    </div>
+    <div class="bar-row">
+      <div class="lab">Federal NO₂ model — between two streets<i>modelled, 20 m raster, 99.5% of network</i></div>
+      <div class="track"><i style="width:100%;background:var(--green)"></i></div>
+      <div class="num">3.00</div>
+    </div>
   </div>
+  <p class="legend-note">µg/m³. The tram signal is the only bar that must clear a noise floor,
+    and it does not — it reaches roughly a third of it. More trams would add coverage,
+    not resolution. Only calibration against reference instruments would.</p>
 
-  <footer>
-    <p>Exposure is concentration multiplied by time spent breathing it, scaled for
-    running. It is an indicative comparison between routes, not a measure of what
-    you personally inhale, and it says nothing about whether a run is healthy.</p>
-    <p>Air: Open Data Basel-Stadt · Streets: OpenStreetMap contributors (ODbL) ·
-    Timetable: opentransportdata.swiss. Provenance for every value travels into
-    the GPX file as well as onto the screen.</p>
-  </footer>
-</main>
+  <h3 class="sec">What the sensors are worth</h3>
+  <p class="sec">Basel also publishes a comparison campaign: low-cost microsensors installed
+    beside the Lufthygieneamt's reference instruments. Pairing them by hour gives the only
+    real error figure for this class of instrument in this city.</p>
+  <div class="scroll-x">
+  <table class="fit">
+    <tr><th>Site</th><th>Paired hours</th><th>Reference median</th><th>Sensor median</th><th>Median bias</th><th>Mean abs. error</th><th>Pearson r</th></tr>
+    <tr><td><b>Feldbergstrasse</b></td><td>8,393</td><td>12.42</td><td>6.35</td><td><b>−4.62</b></td><td><b>5.85</b></td><td>0.860</td></tr>
+    <tr><td><b>St. Johannplatz</b></td><td>9,680</td><td>9.72</td><td>5.20</td><td><b>−3.07</b></td><td><b>4.65</b></td><td>0.898</td></tr>
+  </table>
+  </div>
+  <p class="legend-note">µg/m³ PM2.5. These sensors under-report by 30–37% against reference
+    instruments while tracking changes well. A typical hourly error of 4.7–5.9 µg/m³ is about
+    ten times the 0.51 µg/m³ spatial signal runO2 would need to detect — an independent
+    confirmation of the resolution gate. It is a different sensor model and different years
+    from the trams, so it <em>bounds the class</em>; it does not calibrate the tram sensors.
+    That comparison was never run, so runO2 publishes no error band for them.</p>
+
+  <h3 class="sec">What would actually make runO2 work</h3>
+  <p class="sec">No single dataset does it. Four layers, each doing only what it can — and
+    the planner above already runs on this arrangement.</p>
+  <div class="stack">
+    <div class="layer"><div class="tag" style="color:#8fa9bd">MODELLED · SPATIAL BASELINE</div>
+      <h4>Federal NO₂, 20 m raster</h4>
+      <p>Annual mean, 99.5% of the walking network, 3.0 µg/m³ between two streets, 11–51 µg/m³ across Basel. Traffic-related — which is what a route choice is about.</p>
+      <p class="no">Cannot say: today, this hour, or this address.</p></div>
+    <div class="layer"><div class="tag" style="color:var(--green2)">MEASURED · CURRENT LEVEL</div>
+      <h4>LHA reference stations</h4>
+      <p>Hourly, reference-grade, live — updated today. The true level for the city right now, accurate enough to scale the spatial pattern.</p>
+      <p class="no">Cannot say: which street. Four points for 884 km.</p></div>
+    <div class="layer"><div class="tag" style="color:#c6af60">FORECAST · CONDITIONS</div>
+      <h4>Open-Meteo / CAMS</h4>
+      <p>Temperature, rain, wind, European AQI and pollen for the hour you will actually run.</p>
+      <p class="no">Cannot say: anything that separates two streets.</p></div>
+    <div class="layer"><div class="tag" style="color:#cf8353">MEASURED · UNCERTAINTY</div>
+      <h4>Comparison study 100178</h4>
+      <p>What a low-cost reading is worth: −3 to −4.6 µg/m³ bias, ~5 µg/m³ typical error, r ≈ 0.88.</p>
+      <p class="no">Does not transfer between sensor models.</p></div>
+  </div>
+  <p class="legend-note" style="margin-top:22px">The dataset that inspired the project turns out
+    to be the one layer that cannot carry it. Full method and sources in
+    <a href="https://github.com/blackmath88/RunO2/blob/main/basel-spatial-graph-main/basel-spatial-graph-v0/docs/DATA_FIT.md">docs/DATA_FIT.md</a>.</p>
+</section>
+
+<footer class="site">
+  <div>Air measurements &amp; reference stations: Open Data Basel-Stadt (CC BY 4.0) ·
+    Modelled air quality: © Data BAFU / swisstopo ·
+    Weather, AQI, pollen &amp; elevation: Open-Meteo (CC BY 4.0) ·
+    Streets: © OpenStreetMap contributors (ODbL 1.0) ·
+    Timetable: opentransportdata.swiss</div>
+  <div style="margin-top:12px">runO2 compares route candidates against open air data. It is not a
+    health service, does not estimate personal exposure, and makes no medical claim.</div>
+</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-const state = { lon: 7.5886, lat: 47.5596, distance: 5, pace: 6, hour: null, loops: [], selected: 0 };
-const map = L.map('map').setView([state.lat, state.lon], 14);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, attribution: '© OpenStreetMap contributors'
-}).addTo(map);
-let marker = L.marker([state.lat, state.lon], { draggable: true }).addTo(map);
-let drawn = [];
-
-function paceLabel(p) {
-  const m = Math.floor(p), s = Math.round((p - m) * 60);
-  return `${m}:${String(s).padStart(2, '0')} /km`;
-}
-
-const hoursEl = document.getElementById('hours');
-[['any', null], ['7', 7], ['12', 12], ['17', 17], ['20', 20]].forEach(([label, value]) => {
-  const b = document.createElement('button');
-  b.textContent = label;
-  b.setAttribute('aria-pressed', value === state.hour);
-  b.onclick = () => { state.hour = value; document.getElementById('hourOut').textContent = label;
-                      [...hoursEl.children].forEach(c => c.setAttribute('aria-pressed', c === b)); load(); };
-  hoursEl.appendChild(b);
-});
-
-document.getElementById('dist').oninput = e => {
-  state.distance = parseFloat(e.target.value);
-  document.getElementById('distOut').textContent = state.distance.toFixed(1) + ' km';
-};
-document.getElementById('dist').onchange = load;
-document.getElementById('pace').oninput = e => {
-  state.pace = parseFloat(e.target.value);
-  document.getElementById('paceOut').textContent = paceLabel(state.pace);
-};
-document.getElementById('pace').onchange = load;
-marker.on('dragend', () => { const p = marker.getLatLng(); state.lat = p.lat; state.lon = p.lng; load(); });
-map.on('click', e => { marker.setLatLng(e.latlng); state.lat = e.latlng.lat; state.lon = e.latlng.lng; load(); });
-
-function query() {
-  const p = new URLSearchParams({ lon: state.lon, lat: state.lat,
-    distance_m: state.distance * 1000, pace_min_per_km: state.pace });
-  if (state.hour !== null) p.set('hour', state.hour);
-  return p;
-}
-
-async function load() {
-  const el = document.getElementById('loops');
-  el.innerHTML = '<p style="color:var(--muted)">Finding loops…</p>';
-  try {
-    const res = await fetch('/run/loops?' + query());
-    if (!res.ok) { el.innerHTML = `<p style="color:var(--warn)">${(await res.json()).detail}</p>`; return; }
-    const data = await res.json();
-    state.loops = data.loops; state.selected = 0;
-    renderNotice(data.air_source, data.network_coverage);
-    render();
-  } catch (err) {
-    el.innerHTML = `<p style="color:var(--warn)">Could not reach the planner: ${err}</p>`;
-  }
-}
-
-function renderNotice(source, coverage) {
-  const n = document.getElementById('notice');
-  const bits = [];
-  if (source && source.fixture) bits.push('<b>' + source.warning + '</b>');
-  bits.push(`Sensors cover ${(coverage.length_share * 100).toFixed(0)}% of the walking
-             network by length. The rest is unmeasured — shown as unmeasured, never as clean.`);
-  n.innerHTML = `<div class="notice">${bits.join(' ')}</div>`;
-}
-
-function render() {
-  drawn.forEach(l => map.removeLayer(l)); drawn = [];
-  const el = document.getElementById('loops');
-  el.innerHTML = '';
-  state.loops.forEach((loop, i) => {
-    const chosen = i === state.selected;
-    const ex = loop.exposure;
-    const card = document.createElement('div');
-    card.className = 'loop';
-    card.setAttribute('aria-selected', chosen);
-    card.innerHTML = `
-      <h3>Loop ${i + 1} <span class="badge dynamic">dynamic</span></h3>
-      <div>
-        <div class="stat">${loop.distance_km} km<span>distance</span></div>
-        <div class="stat">${ex.parameters.duration_min} min<span>at ${paceLabel(state.pace)}</span></div>
-        <div class="stat">${ex.mean_concentration ?? '—'}<span>µg/m³ mean, measured part</span></div>
-        <div class="stat">${(ex.coverage.measured_share * 100).toFixed(0)}%<span>of route measured</span></div>
-      </div>
-      <div class="coverage">${ex.explanation}</div>`;
-    card.onclick = () => { state.selected = i; render(); };
-    el.appendChild(card);
-
-    // Draw segment by segment so provenance can differ along one loop.
-    const coords = loop.coordinates;
-    loop.segments.forEach((seg, s) => {
-      if (s + 1 >= coords.length) return;
-      const a = coords[s], b = coords[s + 1];
-      const measured = seg.classification === 'measured';
-      const line = L.polyline([[a[1], a[0]], [b[1], b[0]]], {
-        color: chosen ? (measured ? '#2f7d63' : '#9aa1ad') : '#c9ccd3',
-        weight: chosen ? (measured ? 5 : 4) : 2,
-        dashArray: measured ? null : '4 6',
-        opacity: chosen ? 0.9 : 0.5
-      }).addTo(map);
-      line.bindTooltip(provenanceHtml(seg), { className: 'prov', sticky: true });
-      drawn.push(line);
-    });
-  });
-}
-
-function provenanceHtml(seg) {
-  if (seg.classification !== 'measured') {
-    return `<b>unmeasured</b>No sensor has passed this street. The value is unknown,
-            not zero — this stretch contributes nothing to the total.`;
-  }
-  return `<b>measured</b>${seg.concentration} µg/m³ (PM2.5)<br>
-          ${seg.minutes} min on this stretch<br>
-          Source: Open Data Basel-Stadt, tram-mounted sensors`;
-}
-
-document.getElementById('gpx').onclick = () => {
-  const p = query(); p.set('index', state.selected);
-  window.location = '/run/gpx?' + p;
-};
-
-load();
-</script>
+<script src="/static/runo2.js"></script>
 </body>
 </html>

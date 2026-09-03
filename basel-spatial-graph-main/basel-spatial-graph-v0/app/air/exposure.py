@@ -38,6 +38,10 @@ class SegmentExposure:
     concentration: Optional[float]
     classification: str
     contribution: float = 0.0
+    #: Modelled annual-mean NO2 from the federal raster. A separate field from
+    #: `concentration` on purpose: one is what a sensor read, the other is what
+    #: a national model says, and merging them would lose that distinction.
+    baseline_no2: Optional[float] = None
 
     def as_dict(self) -> dict:
         return {
@@ -47,6 +51,7 @@ class SegmentExposure:
             "concentration": round(self.concentration, 2) if self.concentration is not None else None,
             "classification": self.classification,
             "contribution": round(self.contribution, 1),
+            "baseline_no2": round(self.baseline_no2, 1) if self.baseline_no2 is not None else None,
         }
 
 
@@ -63,6 +68,25 @@ class RouteExposure:
     pollutant: str = "pm25"
     measured_length_m: float = 0.0
     segments: List[SegmentExposure] = field(default_factory=list)
+
+    @property
+    def baseline_no2_mean(self) -> Optional[float]:
+        """Distance-weighted modelled NO2 along the route.
+
+        The federal raster covers effectively the whole network, so this number
+        describes the whole route rather than a fifth of it. It is a modelled
+        annual mean and is labelled as one everywhere it appears.
+        """
+        rated = [s for s in self.segments if s.baseline_no2 is not None and s.length_m > 0]
+        length = sum(s.length_m for s in rated)
+        if not length:
+            return None
+        return sum(s.baseline_no2 * s.length_m for s in rated) / length
+
+    @property
+    def baseline_share(self) -> float:
+        rated = sum(s.length_m for s in self.segments if s.baseline_no2 is not None)
+        return rated / self.distance_m if self.distance_m else 0.0
 
     @property
     def measured_share(self) -> float:
@@ -105,6 +129,21 @@ class RouteExposure:
                     "They are unknown, not clean."
                 ),
             },
+            "baseline": {
+                "classification": "modelled",
+                "pollutant": "no2",
+                "mean": (
+                    round(self.baseline_no2_mean, 1)
+                    if self.baseline_no2_mean is not None else None
+                ),
+                "unit": "ug/m3",
+                "share_of_route": round(self.baseline_share, 3),
+                "explanation": (
+                    "Modelled annual mean, not a measurement and not tied to "
+                    "this hour. Covers the whole route rather than the measured "
+                    "part of it, and is what the route ranking uses."
+                ),
+            },
         }
 
 
@@ -120,8 +159,13 @@ def score_path(
     pace_min_per_km: float = DEFAULT_PACE_MIN_PER_KM,
     hour: Optional[int] = None,
     pollutant: str = "pm25",
+    baseline: Optional[dict] = None,
 ) -> RouteExposure:
-    """Exposure for one ordered list of nodes."""
+    """Exposure for one ordered list of nodes.
+
+    `baseline` maps segment id to a modelled NO2 value. It is optional: without
+    it the result is exactly what it always was.
+    """
     graph = as_graph(network)
     out: List[SegmentExposure] = []
     total = distance = measured_length = 0.0
@@ -144,7 +188,10 @@ def score_path(
             measured_length += length
         total += contribution
         distance += length
-        out.append(SegmentExposure(sid, length, minutes, concentration, classification, contribution))
+        out.append(SegmentExposure(
+            sid, length, minutes, concentration, classification, contribution,
+            baseline_no2=(baseline or {}).get(sid),
+        ))
 
     return RouteExposure(
         total=total,

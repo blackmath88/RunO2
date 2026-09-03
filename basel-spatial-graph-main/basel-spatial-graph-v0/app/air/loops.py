@@ -90,6 +90,7 @@ def generate_loops(
     bearings: Sequence[int] = DEFAULT_BEARINGS,
     limit: int = 3,
     pollutant: str = "pm25",
+    baseline: Optional[Dict[str, float]] = None,
 ) -> List[LoopCandidate]:
     """Return up to `limit` candidate loops, cleanest first."""
     graph = as_graph(network)
@@ -134,8 +135,8 @@ def generate_loops(
         seen.add(key)
 
         exposure = score_path(
-            network, nodes, segments,
-            pace_min_per_km=pace_min_per_km, hour=hour, pollutant=pollutant,
+            network, nodes, segments, pace_min_per_km=pace_min_per_km,
+            hour=hour, pollutant=pollutant, baseline=baseline,
         )
         if exposure.distance_m <= 0:
             continue
@@ -143,12 +144,26 @@ def generate_loops(
             continue
         candidates.append(LoopCandidate(nodes=nodes, exposure=exposure, bearing=bearing))
 
-    # Cleanest first, but a loop measured over almost nothing is not "clean" —
-    # rank by exposure per measured minute so unmeasured routes cannot win by
-    # simply being unknown.
+    # What to rank on is a finding, not a preference.
+    #
+    # The tram measurements cannot separate these routes. Two sensors passing
+    # the same street in the same hour disagree by 1.41 ug/m3 while two
+    # different streets differ by 0.51 — see experiments/AIR_VIABILITY_REAL.md.
+    # Ranking by them would be ranking noise while looking confident about it.
+    #
+    # The federal NO2 raster can: 3.0 ug/m3 between two streets, over 99.5% of
+    # the network instead of 19%. So the ranking runs on the modelled baseline
+    # where one exists, and the measured values are shown beside it as
+    # corroboration rather than used as the deciding number.
+    #
+    # Without a baseline the old rule still applies, and a loop measured over
+    # almost nothing still cannot win by being unknown.
     def rank(candidate: LoopCandidate):
+        modelled = candidate.exposure.baseline_no2_mean
+        if modelled is not None:
+            return (0, modelled, -candidate.exposure.baseline_share)
         measured = candidate.exposure.mean_concentration
-        return (measured if measured is not None else float("inf"),
+        return (1, measured if measured is not None else float("inf"),
                 -candidate.exposure.measured_share)
 
     candidates.sort(key=rank)

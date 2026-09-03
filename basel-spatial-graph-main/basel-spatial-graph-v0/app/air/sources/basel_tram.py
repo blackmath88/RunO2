@@ -20,10 +20,20 @@ DEFAULT_CACHE = RAW_DIR / "air" / f"{DATASET_ID}.csv"
 BASEL_CET = timezone(timedelta(hours=1), name="CET")
 MOBILE_SENSOR_EXCLUSIONS = {236, 240}
 
-# Published deviation of this low-cost sensor class against reference
-# instruments. Left as None until read off the comparison dataset — a made-up
-# error band would be worse than an absent one, because the interface would
-# render it as knowledge.
+# Published deviation of *these* sensors against reference instruments.
+#
+# It stays None, and that is now a considered answer rather than a to-do.
+# `experiments/sensor_calibration.py` did read the comparison dataset (100178):
+# against the Lufthygieneamt's reference instruments over ~18 000 paired hours,
+# that class of microsensor under-reports PM2.5 by 3.07-4.62 ug/m3 at the median
+# with a mean absolute error of 4.65-5.85. Real numbers, and documented in
+# docs/DATA_FIT.md.
+#
+# They are not these sensors. The comparison ran on a Sensirion Nubo in 2022-23,
+# fixed at a monitoring station; these are Atmo-VISION sensors from 2019-20 on a
+# tram roof. Copying the figure across would render a guess as knowledge, which
+# is the exact failure this layer exists to avoid. The tram sensors were never
+# compared against a reference, and no arithmetic here can invent that.
 ERROR_BAND: Dict[str, Optional[float]] = {"pm25": None, "pm10": None}
 
 # --- the seam -------------------------------------------------------------

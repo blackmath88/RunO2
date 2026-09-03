@@ -28,6 +28,7 @@ import numpy as np
 
 from .attribute import attribute_from_source
 from .model import SegmentAir
+from .noise import signal_to_noise
 
 # A route choice is only meaningful if between-street differences are large
 # next to within-street variability.
@@ -105,30 +106,65 @@ def _rank_flip(segments: Dict[str, SegmentAir], morning: int = 8, evening: int =
     }
 
 
-def run(network, source, *, pollutant: str = "pm25") -> dict:
-    segments, coverage = attribute_from_source(network, source, pollutant=pollutant)
+def run(network, source, *, pollutant: str = "pm25", with_resolution: bool = True) -> dict:
+    readings = source.readings()
+    from .attribute import attribute_readings
+
+    segments, coverage = attribute_readings(
+        network, readings, pollutant=pollutant,
+        error_band=source.error_band(pollutant),
+    )
     spatial = _percentile_gap(segments)
     temporal = _rank_flip(segments)
+    resolution = signal_to_noise(network, readings, pollutant=pollutant) if with_resolution else None
     verdict = {
         "pollutant": pollutant,
         "spatial": spatial,
         "temporal": temporal,
         "coverage": coverage.as_dict(),
     }
-    gates = [spatial and spatial["passes"], coverage.segment_share > 0.05]
+    if resolution is not None:
+        verdict["resolution"] = resolution
+    # Resolution is the binding gate. A dataset can pass the percentile check
+    # because day-to-day weather widens the spread of street medians, and still
+    # be unable to tell two streets apart on any single morning.
+    gates = [
+        spatial and spatial["passes"],
+        coverage.segment_share > 0.05,
+        # An undetermined resolution gate (None) does not block; a failed one does.
+        resolution["passes"] is not False if resolution is not None else True,
+    ]
     verdict["route_recommendation_viable"] = all(bool(g) for g in gates)
     verdict["hour_control_viable"] = bool(temporal and temporal["passes"])
     return verdict
 
 
-def _markdown(verdict: dict, data_statistics: Optional[dict] = None) -> str:
+def _markdown(verdict: dict, data_statistics: Optional[dict] = None,
+              provenance: Optional[dict] = None) -> str:
     lines = ["# Air data viability", ""]
+    if provenance:
+        # A verdict about a dataset is worthless without saying which dataset,
+        # which copy of it, and when that copy was taken.
+        lines.append("| | |")
+        lines.append("|---|---|")
+        for label, key in (
+            ("Dataset", "dataset"), ("Title", "dataset_title"),
+            ("Source", "source"), ("Licence", "license"),
+            ("Retrieved", "retrieved_at"), ("Publisher last update", "source_last_update"),
+            ("Sensor class", "sensor_class"),
+        ):
+            value = provenance.get(key)
+            if value:
+                lines.append(f"| {label} | {value} |")
+        lines.append("")
     lines.append(f"Pollutant: `{verdict['pollutant']}`")
     lines.append("")
     lines.append(f"**Route recommendation viable:** {verdict['route_recommendation_viable']}")
     lines.append(f"**Hour-of-day control viable:** {verdict['hour_control_viable']}")
     lines.append("")
-    for key in ("spatial", "temporal", "coverage"):
+    for key in ("spatial", "temporal", "coverage", "resolution"):
+        if key not in verdict:
+            continue
         lines.append(f"## {key}")
         lines.append("")
         lines.append("```json")
@@ -152,6 +188,8 @@ def main(argv=None) -> int:
     parser.add_argument("--csv", help="path to the tram readings export")
     parser.add_argument("--fixture", action="store_true", help="use the synthetic field")
     parser.add_argument("--pollutant", default="pm25")
+    parser.add_argument("--skip-resolution", action="store_true",
+                        help="omit the signal-vs-noise gate (it re-reads every reading)")
     parser.add_argument("--out", default="experiments/AIR_VIABILITY.md")
     args = parser.parse_args(argv)
 
@@ -166,8 +204,11 @@ def main(argv=None) -> int:
         source = FixtureAirSource()
         network = fixture_network()
 
-    verdict = run(network, source, pollutant=args.pollutant)
-    text = _markdown(verdict, getattr(source, "statistics", None))
+    verdict = run(network, source, pollutant=args.pollutant,
+                  with_resolution=not args.skip_resolution)
+    first = next(iter(source.readings()), None)
+    text = _markdown(verdict, getattr(source, "statistics", None),
+                     dict(first.provenance) if first else None)
     print(text)
     try:
         with open(args.out, "w", encoding="utf-8") as handle:
