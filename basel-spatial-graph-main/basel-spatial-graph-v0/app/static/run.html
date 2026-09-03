@@ -87,12 +87,17 @@ a{color:var(--green2)}
 .route-head{display:flex;justify-content:space-between;align-items:baseline}
 .route-name{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em}
 .rank{font-family:"IBM Plex Mono";font-size:9px;color:var(--green2)}
-.route-stats{margin-top:7px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;font-family:"IBM Plex Mono"}
-.route-stats b{display:block;font-size:13px;font-weight:400}
-.route-stats span{font-size:8px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
-.route-note{font-family:"IBM Plex Mono";font-size:9px;color:var(--dim);margin-top:7px;line-height:1.5}
-.route-note strong{color:var(--amber);font-weight:400}
-.coverage-bar{height:3px;background:#22333a;margin-top:8px;display:flex;overflow:hidden}
+.route-size{margin-top:9px;display:flex;align-items:baseline;gap:14px;font-family:"IBM Plex Mono"}
+.route-size b{font-size:23px;font-weight:300;letter-spacing:-.02em}
+.route-size i{font-style:normal;font-size:11px;color:var(--dim)}
+.route-score{margin-top:11px;padding-top:10px;border-top:1px solid var(--line);
+  display:flex;align-items:baseline;justify-content:space-between;font-family:"IBM Plex Mono"}
+.route-score b{font-size:17px;font-weight:300}
+.route-score b s{text-decoration:none;font-size:10px;color:var(--dim);margin-left:3px}
+.route-score span{font-size:8px;color:var(--dim);letter-spacing:.09em;text-transform:uppercase}
+.route-note{font-family:"IBM Plex Mono";font-size:9px;color:var(--dim);margin-top:9px;line-height:1.5}
+.route-note strong{color:var(--ink);font-weight:400}
+.coverage-bar{height:3px;background:#22333a;margin-top:7px;display:flex;overflow:hidden}
 .coverage-bar i{display:block;height:100%}
 .notice{position:absolute;left:20px;bottom:18px;max-width:330px;background:rgba(11,17,20,.92);border:1px solid var(--line);border-left:2px solid var(--amber);padding:10px 12px;font-family:"IBM Plex Mono";font-size:10px;line-height:1.55;color:#9caeaa;z-index:500}
 
@@ -122,7 +127,15 @@ a{color:var(--green2)}
 .air-callout strong{font-weight:400;color:var(--green2)}
 .air-callout p{margin:0 0 8px}.air-callout p:last-child{margin:0}
 .prov{display:grid;gap:10px}
-.prov-row{display:grid;grid-template-columns:88px 1fr;gap:10px;font-family:"IBM Plex Mono";font-size:9px}
+.prov-row{display:grid;grid-template-columns:88px 1fr;gap:10px;font-family:"IBM Plex Mono";font-size:9px;opacity:.82}
+.prov-row:hover{opacity:1}
+.pollen-line{display:flex;flex-wrap:wrap;gap:7px}
+.pl{border:1px solid var(--line);padding:6px 9px;font-family:"IBM Plex Mono";font-size:10px;color:var(--dim)}
+.pl b{color:var(--ink);font-weight:400;margin-right:6px}
+.pl.on{border-color:#4a4324;color:#c9b978}
+.approx{font-family:"IBM Plex Mono";font-size:8px;color:var(--faint);letter-spacing:.06em;
+  text-transform:uppercase;margin-left:5px}
+.export-note{font-family:"IBM Plex Mono";font-size:9.5px;color:var(--dim);margin:10px 0 0;line-height:1.6}
 .badge{color:var(--green2);text-transform:uppercase;letter-spacing:.08em}
 .badge.dynamic{color:#9db6c3}.badge.forecast{color:#c6af60}.badge.unmeasured{color:#cf8353}.badge.modelled{color:#8fa9bd}
 .prov-row p{margin:0;color:#8b9b98;line-height:1.5}
@@ -130,6 +143,44 @@ a{color:var(--green2)}
 .primary{background:var(--white);color:#07100d;border:0;padding:11px 13px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}
 .secondary{background:none;color:var(--ink);border:1px solid var(--line);padding:11px 13px;font-family:"IBM Plex Mono";font-size:11px;cursor:pointer}
 .disclaimer{font-family:"IBM Plex Mono";font-size:9px;color:#566765;line-height:1.6;margin-top:20px}
+
+/* ---------- the reveal ---------- */
+.reveal{padding:16vh 7vw 14vh;border-top:1px solid var(--line);max-width:1180px}
+.reveal .eyebrow{margin-bottom:26px}
+.reveal h2{font-size:clamp(38px,6.4vw,86px);font-weight:300;letter-spacing:-.045em;
+  line-height:.98;margin:0 0 12px;max-width:16ch}
+.reveal h2 em{font-style:normal;color:var(--orange)}
+.face-off{display:grid;grid-template-columns:1fr 1fr;gap:56px;margin:70px 0 54px;max-width:820px}
+.fo-label{font-family:"IBM Plex Mono";font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:16px}
+.fo-value{font-family:"IBM Plex Mono";font-size:clamp(46px,7vw,82px);font-weight:200;
+  line-height:.9;letter-spacing:-.03em}
+.fo-unit{font-family:"IBM Plex Mono";font-size:10.5px;line-height:1.6;color:var(--dim);
+  margin-top:14px;max-width:30ch}
+.fo-bar{height:2px;background:#1b282c;margin-top:22px;position:relative}
+.fo-bar i{position:absolute;left:0;top:0;height:100%;display:block}
+.fo.signal .fo-value{color:var(--green2)}
+.fo.noise .fo-value{color:var(--orange)}
+.reveal-line{font-size:clamp(19px,2.5vw,27px);font-weight:300;line-height:1.4;
+  letter-spacing:-.015em;max-width:26ch;margin:0 0 34px}
+.reveal-sub{font-family:"IBM Plex Mono";font-size:12.5px;line-height:1.8;color:var(--dim);
+  max-width:52ch;margin:0 0 52px}
+.reveal-sub b{color:var(--ink);font-weight:400}
+.reveal-turn{font-size:clamp(24px,3.4vw,40px);font-weight:300;letter-spacing:-.03em;
+  margin:0;padding-top:40px;border-top:1px solid var(--line);max-width:20ch}
+.reveal-turn em{font-style:normal;color:var(--green2)}
+
+/* ---------- the combined architecture ---------- */
+.combine{margin:52px 0 0;padding:34px 0 0;border-top:1px solid var(--line)}
+.combine-row{display:flex;flex-wrap:wrap;align-items:center;gap:16px 22px;
+  font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.combine-row span{color:var(--ink)}
+.combine-row b{color:var(--faint);font-weight:400;font-size:14px}
+.combine-out{margin-top:26px;display:flex;align-items:baseline;gap:16px}
+.combine-out .arrow{font-family:"IBM Plex Mono";color:var(--faint);font-size:14px}
+.combine-out .who{font-family:"IBM Plex Mono";font-size:26px;letter-spacing:-.02em;color:var(--green2)}
+.combine-note{font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);
+  line-height:1.7;margin:18px 0 0;max-width:62ch}
 
 /* ---------- the data story ---------- */
 .story{padding:110px 7vw;border-top:1px solid var(--line);max-width:1180px}
@@ -170,21 +221,79 @@ table.fit td b{font-weight:400;color:var(--ink)}
 .scroll-x{overflow-x:auto}
 footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"IBM Plex Mono";font-size:10px;color:var(--faint);line-height:1.8}
 
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .hero-media{transform:none !important;transition:none}
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important}
+}
+
 @media(max-width:900px){
   .planner{height:auto;grid-template-columns:1fr}
   .sidebar{border-right:0;border-bottom:1px solid var(--line)}
   .map{height:74vh;min-height:520px}
   .route-results{left:12px;right:12px;width:auto;bottom:12px}
-  .route-card:not(.active){display:none}
-  .notice{position:static;max-width:none;margin:12px}
   .report-grid{grid-template-columns:1fr}
   .side-report{border-left:0;border-top:1px solid var(--line)}
   .summary{grid-template-columns:repeat(3,1fr)}
   .hero-copy{margin-left:26px;width:calc(100% - 52px)}
   .topbar{padding:20px}.top-meta{display:none}
   .bar-row{grid-template-columns:1fr;gap:6px}
-  .story{padding:70px 24px}
+  .story,.reveal{padding:70px 24px}
+  .face-off{grid-template-columns:1fr;gap:38px;margin:44px 0 38px}
 }
+
+/* Map-first phone layout. Desktop is still the primary target; this exists so
+   that someone opening the link on a phone understands the project in the
+   first screen, and can still plan and read a route. */
+@media(max-width:760px){
+  .hero{height:auto;min-height:88vh;padding-bottom:34px}
+  .hero h1{font-size:clamp(34px,10vw,52px)}
+  .hero p{font-size:12.5px;margin:20px 0 24px}
+  .cta{display:block;text-align:center;margin:0 0 8px}
+  .cta+.cta{margin-left:0}
+  .scrollhint{display:none}
+
+  /* Map first, controls under it: the map is the thing worth seeing. */
+  .planner{display:flex;flex-direction:column-reverse}
+  .map{height:62vh;min-height:400px;border-bottom:1px solid var(--line)}
+  .sidebar{border-bottom:0;padding:18px 16px 22px}
+  .step{padding:15px 0}
+  .question{font-size:18px}
+  .segmented button{padding:12px 4px}          /* touch targets */
+  .range-line input{height:26px}
+  .plan-btn{margin-top:18px;padding:15px 14px;position:sticky;bottom:8px}
+
+  /* Cards scroll sideways under the map rather than covering it. */
+  .route-results{position:static;display:flex;gap:8px;overflow-x:auto;
+    padding:12px 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .route-card{min-width:76vw;scroll-snap-align:start}
+  .route-card:not(.active){display:block;opacity:.72}
+  .route-results .plan-btn{min-width:56vw;position:static}
+  .notice{position:static;max-width:none;margin:0 16px 12px}
+  .map-top{left:12px;right:12px;top:12px;flex-direction:column;gap:8px}
+  .layers{align-self:flex-start}
+
+  /* The report is the decision surface — give it the whole screen. */
+  .modal{padding:0}
+  .report{width:100vw;max-height:100vh;height:100vh;border:0}
+  .report-top{position:sticky;top:0;background:var(--paper);z-index:2}
+  .main-report,.side-report{padding:18px 16px}
+  .summary{grid-template-columns:repeat(2,1fr);gap:10px}
+  .weather-line{grid-template-columns:repeat(2,1fr)}
+  .report-actions{position:sticky;bottom:0;background:var(--paper);
+    padding:12px 0;margin-top:18px;border-top:1px solid var(--line)}
+  .primary,.secondary{flex:1;padding:14px 12px}
+
+  .reveal{padding:56px 20px}
+  .story{padding:56px 20px}
+  .acts,.stack{grid-template-columns:1fr}
+  .verdict{grid-template-columns:1fr}
+  .combine-row{font-size:10px;gap:10px 14px}
+  table.fit{font-size:9.5px}
+  table.fit th,table.fit td{padding:7px 6px}
+}
+
 </style>
 </head>
 <body>
@@ -288,35 +397,76 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
     <div class="report-grid">
       <div class="main-report">
         <div class="summary" id="reportSummary"></div>
-        <div class="section-label">route air</div>
+        <div class="section-label">why this route</div>
         <div class="air-callout" id="reportAir"></div>
-        <div class="section-label">elevation profile</div>
+        <div class="section-label">elevation profile <span class="approx">derived · approximate</span></div>
         <div class="elev" id="reportElev"></div>
         <div class="mono muted" id="elevAxis" style="font-size:9px;display:flex;justify-content:space-between;margin-top:6px"></div>
-        <div class="section-label">conditions at start</div>
+        <div class="section-label">conditions at start <span class="approx">forecast</span></div>
         <div class="weather-line" id="reportWeather"></div>
+        <div class="section-label">pollen <span class="approx">forecast</span></div>
+        <div class="pollen-line" id="reportPollen"></div>
         <div class="report-actions">
           <button class="primary" id="exportBtn">EXPORT GPX ↓</button>
           <button class="secondary" onclick="closeReport()">CHANGE ROUTE</button>
         </div>
+        <p class="export-note">GPX keeps route provenance in its extensions — per point the
+          concentration and its class, per track the coverage and the parameters it was
+          computed for.</p>
         <p class="disclaimer">runO2 compares route candidates against open city air data.
           It does not estimate personal pollutant dose and makes no health recommendation.
           Terrain elevation is approximate and grade is smoothed.</p>
       </div>
       <div class="side-report">
         <div class="section-label">what this report knows</div>
+        <p class="mono" style="font-size:9px;color:var(--faint);line-height:1.6;margin:0 0 14px">
+          Every value above belongs to one of these classes. They are never blended.</p>
         <div class="prov" id="reportProv"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ============ ACTS 3–5 : THE DATA ============ -->
+<!-- ============ ACT 4 : THE REVEAL ============ -->
+<section class="reveal" id="problem">
+  <div class="eyebrow">The problem</div>
+  <h2>The route works.<br><em>The tram data doesn't.</em></h2>
+
+  <div class="face-off">
+    <div class="fo signal">
+      <div class="fo-label">Street signal</div>
+      <div class="fo-value">0.51</div>
+      <div class="fo-unit">µg/m³ — how far apart two Basel streets are, once
+        city-wide weather is removed</div>
+      <div class="fo-bar"><i style="width:36%;background:var(--green)"></i></div>
+    </div>
+    <div class="fo noise">
+      <div class="fo-label">Sensor disagreement</div>
+      <div class="fo-value">1.41</div>
+      <div class="fo-unit">µg/m³ — how far apart two sensors are on the
+        <em>same street</em> in the <em>same hour</em></div>
+      <div class="fo-bar"><i style="width:100%;background:var(--orange)"></i></div>
+    </div>
+  </div>
+
+  <p class="reveal-line">The sensors disagree with each other almost three times
+    as much as two streets differ.</p>
+  <p class="reveal-sub">Ranking routes by these readings would be ranking noise while
+    looking confident about it. And this is not a gap more data closes:
+    <b>more trams would improve coverage. They would not solve resolution.</b>
+    Only calibration against reference instruments would — and that comparison
+    was never run for these sensors.</p>
+
+  <p class="reveal-turn">So we changed the data,<br><em>not the product.</em></p>
+</section>
+
+<!-- ============ ACT 5 : THE EVIDENCE ============ -->
 <section class="story" id="data">
-  <h2>Can this dataset actually power the product?</h2>
-  <p class="lede">runO2 started from a good idea: Basel put particulate sensors on tram
-    roofs and published the readings. We built the planner, then tested whether the data
-    can carry it. It cannot — and the reason is more interesting than the idea was.</p>
+  <h2>What the numbers actually say</h2>
+  <p class="lede">Every figure below comes from the committed evidence — 613,723 tram
+    readings, two national rasters and 18,073 paired sensor-versus-reference hours. The
+    scripts that produced them are in the repository, and a test fails if the page and the
+    evidence ever drift apart.</p>
 
   <div class="acts">
     <div class="act"><div class="n">ACT 1</div><h3>The trams measure the air</h3>
@@ -372,7 +522,7 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
       <div class="num">1.41</div>
     </div>
     <div class="bar-row">
-      <div class="lab">Federal PM2.5 model — between two streets<i>modelled, 100 m raster, 99.1% of network</i></div>
+      <div class="lab">Federal PM2.5 model — between two streets<i>modelled, 100 m raster, 99.2% of network</i></div>
       <div class="track"><i style="width:33%;background:var(--blue)"></i></div>
       <div class="num">1.00</div>
     </div>
@@ -397,7 +547,7 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
     <tr><td><b>St. Johannplatz</b></td><td>9,680</td><td>9.72</td><td>5.20</td><td><b>−3.07</b></td><td><b>4.65</b></td><td>0.898</td></tr>
   </table>
   </div>
-  <p class="legend-note">µg/m³ PM2.5. These sensors under-report by 30–37% against reference
+  <p class="legend-note">µg/m³ PM2.5. These sensors under-report by 32–37% against reference
     instruments while tracking changes well. A typical hourly error of 4.7–5.9 µg/m³ is about
     ten times the 0.51 µg/m³ spatial signal runO2 would need to detect — an independent
     confirmation of the resolution gate. It is a different sensor model and different years
@@ -410,23 +560,54 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
   <div class="stack">
     <div class="layer"><div class="tag" style="color:#8fa9bd">MODELLED · SPATIAL BASELINE</div>
       <h4>Federal NO₂, 20 m raster</h4>
-      <p>Annual mean, 99.5% of the walking network, 3.0 µg/m³ between two streets, 11–51 µg/m³ across Basel. Traffic-related — which is what a route choice is about.</p>
+      <p>Annual mean, 99.5% of the walking network, 3.0 µg/m³ between two streets,
+         8–48 µg/m³ across Basel. Traffic-related — which is what a route choice is about.</p>
       <p class="no">Cannot say: today, this hour, or this address.</p></div>
+
     <div class="layer"><div class="tag" style="color:var(--green2)">MEASURED · CURRENT LEVEL</div>
       <h4>LHA reference stations</h4>
-      <p>Hourly, reference-grade, live — updated today. The true level for the city right now, accurate enough to scale the spatial pattern.</p>
+      <p>Hourly, reference-grade, still updated today. The true level for the city
+         right now, accurate enough to scale the spatial pattern.</p>
       <p class="no">Cannot say: which street. Four points for 884 km.</p></div>
+
     <div class="layer"><div class="tag" style="color:#c6af60">FORECAST · CONDITIONS</div>
       <h4>Open-Meteo / CAMS</h4>
-      <p>Temperature, rain, wind, European AQI and pollen for the hour you will actually run.</p>
+      <p>Temperature, rain, wind, European AQI and pollen for the hour you will
+         actually run.</p>
       <p class="no">Cannot say: anything that separates two streets.</p></div>
+
     <div class="layer"><div class="tag" style="color:#cf8353">MEASURED · UNCERTAINTY</div>
       <h4>Comparison study 100178</h4>
-      <p>What a low-cost reading is worth: −3 to −4.6 µg/m³ bias, ~5 µg/m³ typical error, r ≈ 0.88.</p>
+      <p>What a low-cost reading is worth: −3.07 to −4.62 µg/m³ bias, ~5 µg/m³
+         typical error, r ≈ 0.88 against reference instruments.</p>
       <p class="no">Does not transfer between sensor models.</p></div>
+
+    <div class="layer"><div class="tag" style="color:var(--green2)">MEASURED · CORROBORATION</div>
+      <h4>BVB tram sensors</h4>
+      <p>613,723 real observations at street level, temporally rich, across a fifth
+         of the network. Shown beside the ranking — never setting it.</p>
+      <p class="no">Cannot say: which street is cleaner. Campaign closed March 2020.</p></div>
   </div>
-  <p class="legend-note" style="margin-top:22px">The dataset that inspired the project turns out
-    to be the one layer that cannot carry it. Full method and sources in
+
+  <div class="combine">
+    <div class="combine-row">
+      <span>Modelled baseline</span><b>+</b>
+      <span>Current measurement</span><b>+</b>
+      <span>Forecast conditions</span><b>+</b>
+      <span>Uncertainty</span>
+    </div>
+    <div class="combine-out">
+      <span class="arrow">↓</span>
+      <span class="who">runO2</span>
+    </div>
+    <p class="combine-note">Multiply the spatial pattern by the current level, state the
+      uncertainty, show the coverage. Buildable today, entirely from open data — and it is
+      what the planner above already runs on. The dataset that inspired the project turns
+      out to be the one layer that cannot carry it.</p>
+  </div>
+
+  <p class="legend-note" style="margin-top:34px">Full method, licences and the
+    comparison table in
     <a href="https://github.com/blackmath88/RunO2/blob/main/basel-spatial-graph-main/basel-spatial-graph-v0/docs/DATA_FIT.md">docs/DATA_FIT.md</a>.</p>
 </section>
 
@@ -440,6 +621,27 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
     health service, does not estimate personal exposure, and makes no medical claim.</div>
 </footer>
 
+<script>
+/* Hero parallax. One rAF-scheduled write per frame, and nothing at all when the
+   viewer has asked for reduced motion — the hero is decoration, and decoration
+   does not get to override that. */
+(function () {
+  var media = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var art = document.querySelector('.hero-media');
+  if (!art || media.matches) return;
+  var ticking = false;
+  function paint() {
+    art.style.setProperty('--hero-shift', Math.min(window.scrollY * 0.22, 130) + 'px');
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; requestAnimationFrame(paint); }
+  }, { passive: true });
+  media.addEventListener('change', function (e) {
+    if (e.matches) art.style.setProperty('--hero-shift', '0px');
+  });
+})();
+</script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/static/runo2.js"></script>
 </body>

@@ -7,12 +7,21 @@
  */
 'use strict';
 
+// Wettsteinplatz, which is what the label says. The previous coordinates were
+// Mittlere Bruecke, half a kilometre west of the name shown beside them.
 const state = {
-  lon: 7.5886, lat: 47.5596, distance: 8, pace: 6, hour: null,
+  lon: 7.5983, lat: 47.5606, distance: 8, pace: 6, hour: null,
   loops: [], selected: 0, layer: 'air', meta: null, report: null,
 };
 
 const $ = (id) => document.getElementById(id);
+
+/* A fresh clone has no tram export and the API serves a synthetic field instead,
+ * saying so in `air_source.fixture`. Every place that would print "measured" has
+ * to print "synthetic" in that case — a fabricated number wearing the measured
+ * label is the one mistake this whole project exists to avoid. */
+const isSynthetic = () => Boolean(state.meta && state.meta.air_source && state.meta.air_source.fixture);
+const measuredWord = () => (isSynthetic() ? 'synthetic' : 'measured');
 const fmtPace = (p) => `${Math.floor(p)}:${String(Math.round((p - Math.floor(p)) * 60)).padStart(2, '0')}`;
 
 const dateLine = new Date().toLocaleDateString('en-GB',
@@ -133,43 +142,52 @@ function showCoverageNotice(data) {
 }
 
 /* ---------- route cards ---------- */
+/* Two seconds to read: what it is, how far, how long, its air score, how much of
+ * it anyone has actually measured. Everything else lives in the report. */
 function renderCards() {
   const el = $('routeResults');
   el.innerHTML = '';
-  const names = ['LOWEST MODELLED NO₂', 'ALTERNATIVE', 'ALTERNATIVE'];
   state.loops.forEach((loop, i) => {
     const ex = loop.exposure;
     const measured = ex.coverage.measured_share;
     const card = document.createElement('div');
     card.className = 'route-card' + (i === state.selected ? ' active' : '');
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-pressed', i === state.selected);
     card.innerHTML = `
       <div class="route-head">
-        <span class="route-name">${String(i + 1).padStart(2, '0')} · ${names[i] || 'ALTERNATIVE'}</span>
-        <span class="rank">${i === 0 ? 'BEST FIT' : ''}</span>
+        <span class="route-name">${i === 0 ? 'BEST MATCH' : 'ALTERNATIVE ' + i}</span>
+        <span class="rank">${i === 0 ? 'lowest modelled NO₂' : ''}</span>
       </div>
-      <div class="route-stats">
-        <div><b>${loop.distance_km.toFixed(1)}</b><span>km</span></div>
-        <div><b>${Math.round(ex.parameters.duration_min)}</b><span>min</span></div>
-        <div><b>${ex.baseline.mean ?? '—'}</b><span>NO₂ model</span></div>
-        <div><b>${(measured * 100).toFixed(0)}%</b><span>measured</span></div>
+      <div class="route-size">
+        <b>${loop.distance_km.toFixed(1)} km</b>
+        <i>${Math.round(ex.parameters.duration_min)} min</i>
       </div>
-      <div class="coverage-bar">
-        <i style="width:${measured * 100}%;background:var(--green)"></i>
+      <div class="route-score">
+        <b>${ex.baseline.mean ?? '—'}<s>µg/m³ NO₂</s></b>
+        <span>air score · modelled</span>
+      </div>
+      <div class="coverage-bar" role="img"
+           aria-label="${Math.round(measured * 100)} percent of this route was ${measuredWord()}">
+        <i style="width:${measured * 100}%;background:${isSynthetic() ? 'var(--orange)' : 'var(--green)'}"></i>
         <i style="width:${(1 - measured) * 100}%;background:#3B4A4C"></i>
       </div>
       <div class="route-note">
-        ${ex.mean_concentration !== null
-          ? `Measured PM2.5 ${ex.mean_concentration} µg/m³ on the measured part. `
-          : 'No tram sensor ever passed this route. '}
-        <strong>${((1 - measured) * 100).toFixed(0)}% unmeasured.</strong>
+        <strong>${(measured * 100).toFixed(0)}% ${measuredWord()}</strong>${
+          ex.mean_concentration !== null
+            ? ` · ${ex.mean_concentration} µg/m³ PM2.5 there`
+            : ' · no sensor ever passed'} · rest unmeasured
       </div>`;
-    card.addEventListener('click', () => {
-      state.selected = i; renderCards(); drawRoutes();
+    const choose = () => { state.selected = i; renderCards(); drawRoutes(); };
+    card.addEventListener('click', choose);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); }
     });
     el.appendChild(card);
   });
   const go = document.createElement('button');
-  go.className = 'plan-btn'; go.style.marginTop = '2px';
+  go.className = 'plan-btn';
   go.textContent = 'REVIEW THIS RUN →';
   go.addEventListener('click', openReport);
   el.appendChild(go);
@@ -235,8 +253,12 @@ function segmentTooltip(seg) {
                <span style="color:#7C8D8B">· annual mean, 20 m federal raster</span>`);
   }
   if (seg.classification === 'measured') {
-    rows.push(`<b style="color:#73B39E">MEASURED</b> PM2.5 ${seg.concentration} µg/m³
-               <span style="color:#7C8D8B">· tram sensors, 2019–20 campaign</span>`);
+    rows.push(isSynthetic()
+      ? `<b style="color:#D6721F">SYNTHETIC</b> PM2.5 ${seg.concentration} µg/m³
+         <span style="color:#7C8D8B">· generated fixture, not a measurement —
+         fetch dataset 100113 for the real values</span>`
+      : `<b style="color:#73B39E">MEASURED</b> PM2.5 ${seg.concentration} µg/m³
+         <span style="color:#7C8D8B">· tram sensors, 2019–20 campaign</span>`);
   } else {
     rows.push(`<b style="color:#cf8353">UNMEASURED</b>
                <span style="color:#7C8D8B">No sensor ever passed. Unknown, not clean —
@@ -282,6 +304,7 @@ async function openReport() {
   $('reportSummary').innerHTML = '<div class="mono muted">Loading…</div>';
   $('reportAir').innerHTML = ''; $('reportProv').innerHTML = '';
   $('reportElev').innerHTML = ''; $('reportWeather').innerHTML = '';
+  $('reportPollen').innerHTML = '';
   const p = query(); p.set('index', state.selected);
   try {
     const res = await fetch('/run/report?' + p);
@@ -339,16 +362,28 @@ function renderReport(r) {
   }
 
   const w = c.weather || {}, a = c.air_quality || {}, pol = c.pollen || {};
-  const worst = pol.worst ? pol.values[pol.worst] : null;
+  const val = (v, suffix) => (v === null || v === undefined ? '—' : `${v}${suffix || ''}`);
   $('reportWeather').innerHTML = [
-    [w.temperature_c !== null && w.temperature_c !== undefined ? `${w.temperature_c}°C` : '—', 'temperature'],
-    [w.precipitation_probability_pct !== null && w.precipitation_probability_pct !== undefined
-      ? `${w.precipitation_probability_pct}%` : '—', 'rain probability'],
-    [w.wind_speed_kmh !== null && w.wind_speed_kmh !== undefined
-      ? `${Math.round(w.wind_speed_kmh)} km/h` : '—', `wind ${w.wind_direction || ''}`],
-    [a.european_aqi ?? '—', 'european aqi'],
-  ].map(([v, l]) => `<div class="wx"><b>${v}</b><span>${l}</span></div>`).join('')
-   + (worst ? `<div class="wx"><b>${worst.band}</b><span>${pol.worst} pollen</span></div>` : '');
+    [val(w.temperature_c, '°C'), 'temperature'],
+    [val(w.precipitation_probability_pct, '%'), 'rain probability'],
+    [w.wind_speed_kmh === null || w.wind_speed_kmh === undefined
+      ? '—' : `${Math.round(w.wind_speed_kmh)} km/h`, `wind ${w.wind_direction || ''}`],
+    [val(a.european_aqi), 'european aqi'],
+  ].map(([v, l]) => `<div class="wx"><b>${v}</b><span>${l}</span></div>`).join('');
+
+  // Pollen gets its own row: a runner with hay fever reads this first, and it
+  // does not belong squeezed in beside the wind.
+  const kinds = Object.keys(pol.values || {});
+  $('reportPollen').innerHTML = kinds.length
+    ? kinds
+        .sort((x, y) => pol.values[y].grains_per_m3 - pol.values[x].grains_per_m3)
+        .map((k) => {
+          const v = pol.values[k];
+          const active = v.band !== 'none';
+          return `<span class="pl${active ? ' on' : ''}"><b>${k}</b>${v.band}${
+            active ? ` · ${v.grains_per_m3} grains/m³` : ''}</span>`;
+        }).join('')
+    : '<span class="pl">pollen forecast unavailable</span>';
 
   // provenance — one row per class, in the language of the class
   const rows = [];
@@ -358,7 +393,12 @@ function renderReport(r) {
       ${m.dataset}. ${m.attribution}. Used to rank these routes against each other —
       not valid for a single address.`]);
   }
-  if (meas && meas.dataset) {
+  if (r.provenance.fixture_warning) {
+    rows.push(['unmeasured', `<b style="color:var(--orange)">${r.provenance.fixture_warning}</b>
+      No real tram readings are loaded, so the PM2.5 figures above are generated,
+      not observed. The modelled NO₂ ranking is unaffected.`]);
+  }
+  if (meas && meas.dataset && !r.provenance.fixture_warning) {
     const win = meas.measurement_window;
     rows.push(['measured', `PM2.5 from tram-mounted sensors, dataset ${meas.dataset}
       (${meas.readings_total ? meas.readings_total.toLocaleString('de-CH') : '—'} readings${
