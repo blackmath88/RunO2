@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.venv-mcp/
+.pytest_cache/
+
+# The application keeps its own ignore rules for raw download caches and
+# derived experiment output; see basel-spatial-graph-v0/.gitignore.

@@ -14,7 +14,7 @@ from app.air.attribute import attribute_from_source, attribute_readings, segment
 from app.air.exposure import DEFAULT_PACE_MIN_PER_KM, duration_minutes, score_path
 from app.air.gpx import NAMESPACE, route_to_gpx
 from app.air.loops import generate_loops
-from app.air.model import MEASURED, UNMEASURED, SegmentAir
+from app.air.model import MEASURED, UNMEASURED, AirReading, SegmentAir
 from app.air.sources.fixture_source import FixtureAirSource
 from app.air.testing import CENTRE, fixture_network
 from app.air.viability import run as run_viability
@@ -244,3 +244,154 @@ def test_viability_reports_rather_than_raises_on_thin_data(network):
     verdict = run_viability(network, Thin())
     assert verdict["spatial"] is None or verdict["spatial"]["passes"] in (True, False)
     assert verdict["coverage"]["segments_total"] > 0
+
+
+# --- resolution: signal against the instrument's own disagreement -----------
+
+
+def test_background_removal_leaves_the_street_and_drops_the_weather():
+    """Enhancement is a reading minus what the whole fleet saw that hour."""
+    from datetime import datetime, timezone
+
+    from app.air.noise import as_enhancement, citywide_background
+
+    when = datetime(2020, 1, 5, 8, tzinfo=timezone.utc)
+    readings = [
+        AirReading(lon=7.58, lat=47.55, timestamp=when, values={"pm25": v},
+                   sensor_id="a")
+        for v in [10.0] * 40
+    ] + [
+        AirReading(lon=7.59, lat=47.56, timestamp=when, values={"pm25": 18.0},
+                   sensor_id="b")
+    ]
+    background = citywide_background(readings)
+    assert background[(when.date(), 8)] == 10.0
+    enhanced = as_enhancement(readings, background)
+    assert enhanced[-1].values["pm25"] == 8.0      # 18 above a citywide 10
+    assert enhanced[0].values["pm25"] == 0.0
+
+
+def test_hours_without_enough_readings_get_no_background_and_are_dropped():
+    """A background from three readings would be noise pretending to be a level."""
+    from datetime import datetime, timezone
+
+    from app.air.noise import as_enhancement, citywide_background
+
+    when = datetime(2020, 1, 5, 3, tzinfo=timezone.utc)
+    thin = [
+        AirReading(lon=7.58, lat=47.55, timestamp=when, values={"pm25": 12.0},
+                   sensor_id="a")
+        for _ in range(3)
+    ]
+    background = citywide_background(thin)
+    assert background == {}
+    assert as_enhancement(thin, background) == []
+
+
+def test_disagreement_is_undetermined_when_no_street_saw_two_sensors(network):
+    """One sensor per street means the instruments were never compared."""
+    from app.air.noise import signal_to_noise
+
+    verdict = signal_to_noise(network, FixtureAirSource(days=2).readings())
+    assert verdict["noise_sensor_disagreement"]["median_gap_between_two_sensors"] is None
+    assert verdict["passes"] is None
+    assert "undetermined" in verdict["interpretation"]
+
+
+def test_an_undetermined_resolution_gate_does_not_condemn_the_dataset(network):
+    """Unknown is not bad — the same rule the unmeasured class follows."""
+    verdict = run_viability(network, FixtureAirSource(days=2))
+    assert verdict["resolution"]["passes"] is None
+    assert verdict["route_recommendation_viable"] is True
+
+
+def test_two_sensors_disagreeing_on_one_street_is_measured_as_noise(network):
+    """Same segment, same hour, two sensors, a known 6 ug/m3 apart."""
+    from datetime import datetime, timezone
+
+    from app.air.noise import sensor_disagreement
+
+    # On the midpoint of a real edge, which is what attribution matches against.
+    u, v = next(iter(network.edges()))
+    lon = (network.nodes[u]["lon"] + network.nodes[v]["lon"]) / 2
+    lat = (network.nodes[u]["lat"] + network.nodes[v]["lat"]) / 2
+    when = datetime(2020, 1, 5, 8, tzinfo=timezone.utc)
+    readings = []
+    for sensor, value in (("a", 8.0), ("b", 14.0)):
+        readings += [
+            AirReading(lon=lon, lat=lat, timestamp=when, values={"pm25": value},
+                       sensor_id=sensor)
+            for _ in range(5)
+        ]
+    result = sensor_disagreement(network, readings)
+    assert result["cells_compared"] >= 1
+    assert result["median_gap_between_two_sensors"] == 6.0
+
+
+# --- the modelled baseline: separate from measurement, never merged with it ---
+
+
+@pytest.fixture
+def baseline():
+    from app.air.baseline import AirBaseline
+
+    if not AirBaseline.available():
+        pytest.skip("federal baseline not prepared; run `python -m app.air.baseline --prepare`")
+    return AirBaseline()
+
+
+def test_baseline_covers_effectively_the_whole_basel_network(baseline):
+    """The point of the modelled layer: it is everywhere the measurements are not."""
+    from app.air.attribute import _segment_midpoints
+    from app.street_sources import load_network
+
+    network = load_network("walk", force_fixture=False)
+    ids, xs, ys, _ = _segment_midpoints(network)
+    if len(ids) < 1000:
+        pytest.skip("prepared Basel network not present")
+    values = baseline.sample(xs, ys, "no2")
+    covered = sum(v is not None for v in values)
+    assert covered / len(ids) > 0.95
+
+
+def test_baseline_declares_itself_modelled_and_annual(baseline):
+    """Modelled data must never arrive looking like a measurement."""
+    provenance = baseline.provenance("no2")
+    assert provenance["classification"] == "modelled"
+    assert provenance["temporal_resolution"] == "annual mean"
+    assert "not a measurement" in provenance["explanation"].lower()
+    assert provenance["attribution"]
+    assert provenance["resolution_m"] == 20
+
+
+def test_baseline_outside_the_clip_is_none_not_zero(baseline):
+    """Off the edge of Basel is unknown, in the same way an unmeasured street is."""
+    assert baseline.sample([0.0], [0.0], "no2") == [None]
+
+
+def test_modelled_and_measured_travel_in_separate_fields(network, attributed):
+    """The two must be distinguishable at every level of the response."""
+    segments, _ = attributed
+    nodes = list(network.nodes())[:6]
+    fake_baseline = {segment_id(u, v): 22.0 for u, v in zip(nodes, nodes[1:])}
+    exposure = score_path(network, nodes, segments, baseline=fake_baseline)
+    body = exposure.as_dict()
+    assert body["baseline"]["classification"] == "modelled"
+    assert body["baseline"]["pollutant"] == "no2"
+    assert body["baseline"]["mean"] == 22.0
+    # The measured total is untouched by the presence of a model.
+    assert body["classification"] == "dynamic"
+    assert body["pollutant"] == "pm25"
+    for segment in exposure.segments:
+        row = segment.as_dict()
+        assert "concentration" in row and "baseline_no2" in row
+        assert row["baseline_no2"] == 22.0
+
+
+def test_a_route_with_no_baseline_behaves_exactly_as_before(network, attributed):
+    """The modelled layer is additive; without it nothing changes."""
+    segments, _ = attributed
+    nodes = list(network.nodes())[:6]
+    body = score_path(network, nodes, segments).as_dict()
+    assert body["baseline"]["mean"] is None
+    assert body["baseline"]["share_of_route"] == 0.0

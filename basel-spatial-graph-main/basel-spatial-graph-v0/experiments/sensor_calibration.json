@@ -1,0 +1,70 @@
+{
+  "retrieved_at": "2026-09-03T18:59:13+00:00",
+  "window_requested": [
+    "2022-02-01",
+    "2023-07-01"
+  ],
+  "datasets": {
+    "100178": {
+      "title": "Smarte Strasse: Luftqualit\u00e4t Vergleichsmessungen",
+      "license": "CC BY 4.0",
+      "records": 19381
+    },
+    "100050": {
+      "title": "Luftqualit\u00e4t Station Feldbergstrasse",
+      "license": "CC BY 4.0",
+      "records": 231895
+    },
+    "100049": {
+      "title": "Luftqualit\u00e4t Station St. Johannplatz",
+      "license": "CC BY 4.0",
+      "records": 233064
+    }
+  },
+  "sites": [
+    {
+      "site": "Feldbergstrasse",
+      "sensor_dataset": "100178",
+      "reference_dataset": "100050",
+      "paired_hours": 8393,
+      "window": {
+        "from": "2022-02-13 10:00:00+00:00",
+        "to": "2023-06-29 06:00:00+00:00"
+      },
+      "reference_median_ug_m3": 12.42,
+      "sensor_median_ug_m3": 6.35,
+      "median_bias_ug_m3": -4.62,
+      "mean_bias_ug_m3": -3.75,
+      "mean_absolute_error_ug_m3": 5.85,
+      "rmse_ug_m3": 6.9,
+      "p90_absolute_error_ug_m3": 10.52,
+      "pearson_r": 0.86,
+      "regression": {
+        "slope": 1.16,
+        "intercept": -6.071
+      }
+    },
+    {
+      "site": "St. Johannplatz",
+      "sensor_dataset": "100178",
+      "reference_dataset": "100049",
+      "paired_hours": 9680,
+      "window": {
+        "from": "2022-02-13 10:00:00+00:00",
+        "to": "2023-06-29 06:00:00+00:00"
+      },
+      "reference_median_ug_m3": 9.72,
+      "sensor_median_ug_m3": 5.2,
+      "median_bias_ug_m3": -3.07,
+      "mean_bias_ug_m3": -1.94,
+      "mean_absolute_error_ug_m3": 4.65,
+      "rmse_ug_m3": 5.79,
+      "p90_absolute_error_ug_m3": 8.44,
+      "pearson_r": 0.898,
+      "regression": {
+        "slope": 1.407,
+        "intercept": -6.575
+      }
+    }
+  ]
+}

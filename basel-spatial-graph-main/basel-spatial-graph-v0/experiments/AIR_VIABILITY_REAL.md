@@ -1,5 +1,15 @@
 # Air data viability
 
+| | |
+|---|---|
+| Dataset | 100113 |
+| Title | Feinstaubmessungen auf BVB-Trams |
+| Source | Open Data Basel-Stadt |
+| Licence | CC BY 4.0 |
+| Retrieved | 2026-09-03T18:57:33+00:00 |
+| Publisher last update | 2026-01-28T10:16:46.763000+00:00 |
+| Sensor class | low-cost mobile microsensor |
+
 Pollutant: `pm25`
 
 **Route recommendation viable:** False
@@ -47,6 +57,90 @@ Pollutant: `pm25`
   "length_share": 0.192,
   "network_length_km": 884.11,
   "note": "Sensors ride on trams, so coverage follows the tram network. Unmeasured streets are shown as unmeasured, never as clean."
+}
+```
+
+## resolution
+
+```json
+{
+  "citywide_background": {
+    "bins": 2735,
+    "bin_definition": "one date, one clock hour, whole fleet",
+    "p10": 1.73,
+    "median": 7.45,
+    "p90": 26.34,
+    "note": "Day-to-day variation moves every street together. It is removed from both sides of the comparison below."
+  },
+  "signal_street_contrast": {
+    "basis": "hour 8",
+    "segments_compared": 3311,
+    "median_gap_between_two_streets": 0.51,
+    "unit": "ug/m3 (enhancement over citywide level)"
+  },
+  "noise_sensor_disagreement": {
+    "cells_compared": 11570,
+    "cell_definition": "one segment, one date, one clock hour",
+    "median_gap_between_two_sensors": 1.41,
+    "p90_gap": 8.19,
+    "unit": "ug/m3",
+    "systematic_offsets": [
+      {
+        "pair": "228 - 237",
+        "comparisons": 3893,
+        "median_offset": -0.81
+      },
+      {
+        "pair": "234 - 235",
+        "comparisons": 2122,
+        "median_offset": 2.33
+      },
+      {
+        "pair": "227 - 237",
+        "comparisons": 1561,
+        "median_offset": -1.7
+      },
+      {
+        "pair": "227 - 228",
+        "comparisons": 1452,
+        "median_offset": -0.28
+      },
+      {
+        "pair": "234 - 237",
+        "comparisons": 906,
+        "median_offset": -1.07
+      },
+      {
+        "pair": "228 - 234",
+        "comparisons": 780,
+        "median_offset": -0.74
+      },
+      {
+        "pair": "228 - 235",
+        "comparisons": 776,
+        "median_offset": 0.65
+      },
+      {
+        "pair": "227 - 234",
+        "comparisons": 687,
+        "median_offset": -1.08
+      },
+      {
+        "pair": "235 - 237",
+        "comparisons": 664,
+        "median_offset": -3.08
+      },
+      {
+        "pair": "227 - 235",
+        "comparisons": 502,
+        "median_offset": 4.18
+      }
+    ]
+  },
+  "signal_to_noise_ratio": 0.36,
+  "passes": false,
+  "threshold": 1.0,
+  "interpretation": "Two sensors on the same street in the same hour disagree by as much as two different streets do. Ranking routes by these values ranks noise. More trams would add coverage, not resolution \u2014 only calibration against reference instruments would."
 }
 ```
 

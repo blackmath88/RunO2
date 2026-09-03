@@ -28,6 +28,7 @@ The viability script asks whether the data can carry the product at all:
 | **spatial** | Street-to-street differences exceed within-street spread at a fixed hour by 1.5x | No route recommendation is possible |
 | **temporal** | Segment *rankings* change between morning and evening (rank disagreement ≥ 0.25) | Drop the hour control; one pattern is just moving up and down |
 | **coverage** | More than 5% of segments have any reading | Coverage itself becomes the finding |
+| **resolution** | Two streets differ by more than two sensors observing the same street in the same hour | The ranking is noise, and no amount of extra coverage fixes it |
 
 A failing answer is a good outcome. It is much cheaper to learn in an hour that
 the data cannot support a route recommendation than to discover it after
@@ -118,14 +119,18 @@ app/air/
   exposure.py           scoring, pace scaling, the dynamic result
   loops.py              candidate generation
   gpx.py                GPX 1.1 + provenance extensions
-  viability.py          the gate
-  api.py                /run/loops and /run/gpx
+  viability.py          the gates
+  noise.py              the resolution gate: signal against instrument noise
+  baseline.py           federal modelled rasters, clipped to Basel
+  conditions.py         weather, pollen, AQI and smoothed terrain
+  api.py                /run, /run/loops, /run/report, /run/conditions, /run/gpx
   testing.py            deterministic grid network
   sources/
     base.py             the contract
     fixture_source.py   synthetic field with a known spatial and temporal shape
     basel_tram.py       real adapter — SCHEMA UNVERIFIED, one dict to fix
 app/static/run.html     the interface
+app/static/runo2.js     its behaviour
 tests/test_air_layer.py, tests/test_air_api.py
 ```
 
@@ -133,9 +138,19 @@ tests/test_air_layer.py, tests/test_air_api.py
 
 - Dataset 100113's confirmed fields are `time`, `sensornr`, `pm25`, `pm10`,
   `longitude` and `latitude`. Stationary QA sensors 236 and 240 are excluded.
-- The published sensor error band is `None` until read off the comparison
-  dataset. A made-up band would be worse than an absent one, because the
-  interface would render it as knowledge.
+- **The resolution gate fails on the real data**, and this is the project's
+  central finding. Signal 0.51 ug/m3 between two streets, noise 1.41 ug/m3
+  between two sensors on the same street in the same hour: a ratio of 0.36
+  where 1.0 is the minimum. The route ranking therefore runs on the federal
+  NO2 raster (`app/air/baseline.py`), and the measured values are displayed
+  beside it as corroboration rather than used to decide. See
+  `docs/DATA_FIT.md` and `experiments/AIR_VIABILITY_REAL.md`.
+- **The dataset is closed.** The campaign ran December 2019 to March 2020 and
+  the publisher states it will never be updated. Nothing here describes today.
+- The sensor error band stays `None`. The comparison dataset was read and does
+  yield real figures for the low-cost class (bias -3.07 to -4.62 ug/m3, MAE
+  4.65-5.85), but for a different sensor model in different years. Transferring
+  it would be a made-up band wearing a citation.
 - Attribution is midpoint-within-50m. Crude on purpose: the sensor is on a tram
   roof and finer precision would be false.
 - Loops are candidates, not optima.
