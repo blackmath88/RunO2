@@ -1,7 +1,7 @@
 # Refreshing the data only (`python -m app.prepare_data`).
 # OSMnx pulls in geopandas and pandas; the running server never imports it,
 # so it is kept out of requirements.txt to keep the quick-start install small.
-osmnx>=2.0
+osmnx>=2.1.1
 
 # Clipping the federal air-quality rasters (`python -m app.air.baseline --prepare`).
 # The server reads the committed 60 kB clip with numpy alone and never imports this.
