@@ -127,7 +127,7 @@ jobs:
 
       - name: Upload raw scanner reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: quality-safety-python-reports
           path: |
@@ -159,7 +159,7 @@ jobs:
           console.log(`Known vulnerabilities: **${v.total ?? 'unknown'}** (critical ${v.critical ?? 0}, high ${v.high ?? 0}, moderate ${v.moderate ?? 0})`);
           console.log('\n> This reports known registry advisories; it does not prove a dependency is trustworthy or safe.');
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: npm-audit-report
