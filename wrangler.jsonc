@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "runo2",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-09-08",
+  "routes": [
+    {
+      "pattern": "runo2.bridge-work.ai",
+      "custom_domain": true
+    }
+  ],
+  "containers": [
+    {
+      "class_name": "RunO2Container",
+      "image": "./Dockerfile",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RUNO2",
+        "class_name": "RunO2Container"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RunO2Container"]
+    }
+  ]
+}
