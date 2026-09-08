@@ -31,75 +31,88 @@ jobs:
           pip install ruff bandit pip-audit semgrep
 
       - name: Run test suite — hard gate
+        id: tests
         run: pytest -q
 
       - name: Ruff — code quality baseline
         id: ruff
         continue-on-error: true
-        run: |
-          ruff check app tests --output-format concise | tee /tmp/ruff.txt
+        run: ruff check app tests --output-format concise | tee /tmp/ruff.txt
 
       - name: Bandit — Python security patterns
         id: bandit
         continue-on-error: true
-        run: |
-          bandit -r app -f json -o /tmp/bandit.json
+        run: bandit -r app -f json -o /tmp/bandit.json
 
       - name: pip-audit — known Python dependency CVEs
         id: pipaudit
         continue-on-error: true
-        run: |
-          pip-audit -r requirements.txt --format json --output /tmp/pip-audit.json
+        run: pip-audit -r requirements.txt --format json --output /tmp/pip-audit.json
 
       - name: Semgrep CE — broader static security scan
         id: semgrep
         continue-on-error: true
-        run: |
-          semgrep scan --config auto --json --output /tmp/semgrep.json app
+        run: semgrep scan --config auto --json --output /tmp/semgrep.json app
 
       - name: Publish evaluation summary
         if: always()
+        env:
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          RUFF_OUTCOME: ${{ steps.ruff.outcome }}
+          BANDIT_OUTCOME: ${{ steps.bandit.outcome }}
+          PIPAUDIT_OUTCOME: ${{ steps.pipaudit.outcome }}
+          SEMGREP_OUTCOME: ${{ steps.semgrep.outcome }}
         run: |
-          {
-            echo '## runO2 quality & safety evaluation'
-            echo
-            echo '| Check | Result | Role |'
-            echo '|---|---|---|'
-            echo '| pytest | ${{ job.status == 'success' && 'passed' || 'see job' }} | behavioral correctness — hard gate |'
-            echo '| Ruff | ${{ steps.ruff.outcome }} | code quality / likely mistakes |'
-            echo '| Bandit | ${{ steps.bandit.outcome }} | Python security patterns |'
-            echo '| pip-audit | ${{ steps.pipaudit.outcome }} | known dependency vulnerabilities |'
-            echo '| Semgrep CE | ${{ steps.semgrep.outcome }} | static security / bug patterns |'
-            echo
-            echo '> Scanner findings are evidence to review, not proof of safety and not automatically bugs. During the baseline phase only tests are blocking.'
-            echo
-            echo '### Ruff excerpt'
-            echo '```text'
-            head -80 /tmp/ruff.txt 2>/dev/null || true
-            echo '```'
-            echo
-            python - <<'PY'
-          } >> "$GITHUB_STEP_SUMMARY"
-          import json, pathlib, os
+          python - <<'PY'
+          import json, os, pathlib
+
           summary = pathlib.Path(os.environ['GITHUB_STEP_SUMMARY'])
+
           def load(path):
               try:
                   return json.loads(pathlib.Path(path).read_text())
               except Exception:
                   return None
+
           bandit = load('/tmp/bandit.json')
           audit = load('/tmp/pip-audit.json')
           semgrep = load('/tmp/semgrep.json')
-          with summary.open('a') as f:
-              if bandit is not None:
-                  metrics = bandit.get('metrics', {}).get('_totals', {})
-                  f.write(f"### Bandit\nIssues: **{len(bandit.get('results', []))}** · high severity: **{metrics.get('SEVERITY.HIGH', 0)}** · high confidence: **{metrics.get('CONFIDENCE.HIGH', 0)}**\n\n")
-              if audit is not None:
-                  deps = audit.get('dependencies', audit if isinstance(audit, list) else [])
-                  vulns = sum(len(d.get('vulns', [])) for d in deps if isinstance(d, dict))
-                  f.write(f"### pip-audit\nKnown vulnerability records: **{vulns}**\n\n")
-              if semgrep is not None:
-                  f.write(f"### Semgrep CE\nFindings: **{len(semgrep.get('results', []))}**\n\n")
+          try:
+              ruff_excerpt = pathlib.Path('/tmp/ruff.txt').read_text()[:8000]
+          except Exception:
+              ruff_excerpt = '(no Ruff output)'
+
+          lines = [
+              '## runO2 quality & safety evaluation',
+              '',
+              '| Check | Result | Role |',
+              '|---|---|---|',
+              f"| pytest | {os.getenv('TESTS_OUTCOME')} | behavioral correctness — hard gate |",
+              f"| Ruff | {os.getenv('RUFF_OUTCOME')} | code quality / likely mistakes |",
+              f"| Bandit | {os.getenv('BANDIT_OUTCOME')} | Python security patterns |",
+              f"| pip-audit | {os.getenv('PIPAUDIT_OUTCOME')} | known dependency vulnerabilities |",
+              f"| Semgrep CE | {os.getenv('SEMGREP_OUTCOME')} | static security / bug patterns |",
+              '',
+              '> Scanner findings are evidence to review, not proof of safety and not automatically bugs. During the baseline phase only tests are blocking.',
+              '',
+          ]
+
+          if bandit is not None:
+              metrics = bandit.get('metrics', {}).get('_totals', {})
+              lines += [
+                  '### Bandit',
+                  f"Issues: **{len(bandit.get('results', []))}** · high severity: **{metrics.get('SEVERITY.HIGH', 0)}** · high confidence: **{metrics.get('CONFIDENCE.HIGH', 0)}**",
+                  '',
+              ]
+          if audit is not None:
+              deps = audit.get('dependencies', audit if isinstance(audit, list) else [])
+              vulns = sum(len(d.get('vulns', [])) for d in deps if isinstance(d, dict))
+              lines += ['### pip-audit', f'Known vulnerability records: **{vulns}**', '']
+          if semgrep is not None:
+              lines += ['### Semgrep CE', f"Findings: **{len(semgrep.get('results', []))}**", '']
+
+          lines += ['### Ruff excerpt', '```text', ruff_excerpt, '```', '']
+          summary.write_text('\n'.join(lines))
           PY
 
       - name: Upload raw scanner reports
