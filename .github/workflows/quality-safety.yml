@@ -1,0 +1,167 @@
+name: Quality & Safety Evaluation
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python-quality-safety:
+    name: Python quality, tests & security
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: basel-spatial-graph-main/basel-spatial-graph-v0
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: basel-spatial-graph-main/basel-spatial-graph-v0/requirements.txt
+
+      - name: Install app and audit tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff bandit pip-audit semgrep
+
+      - name: Run test suite — hard gate
+        id: tests
+        run: pytest -q
+
+      - name: Ruff — code quality baseline
+        id: ruff
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          ruff check app tests --output-format concise | tee /tmp/ruff.txt
+
+      - name: Bandit — Python security patterns
+        id: bandit
+        continue-on-error: true
+        run: bandit -r app -f json -o /tmp/bandit.json
+
+      - name: pip-audit — known Python dependency CVEs
+        id: pipaudit
+        continue-on-error: true
+        run: pip-audit -r requirements.txt --format json --output /tmp/pip-audit.json
+
+      - name: Semgrep CE — broader static security scan
+        id: semgrep
+        continue-on-error: true
+        run: semgrep scan --config auto --json --output /tmp/semgrep.json app
+
+      - name: Publish evaluation summary
+        if: always()
+        env:
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          RUFF_OUTCOME: ${{ steps.ruff.outcome }}
+          BANDIT_OUTCOME: ${{ steps.bandit.outcome }}
+          PIPAUDIT_OUTCOME: ${{ steps.pipaudit.outcome }}
+          SEMGREP_OUTCOME: ${{ steps.semgrep.outcome }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+
+          summary = pathlib.Path(os.environ['GITHUB_STEP_SUMMARY'])
+
+          def load(path):
+              try:
+                  return json.loads(pathlib.Path(path).read_text())
+              except Exception:
+                  return None
+
+          bandit = load('/tmp/bandit.json')
+          audit = load('/tmp/pip-audit.json')
+          semgrep = load('/tmp/semgrep.json')
+          try:
+              ruff_text = pathlib.Path('/tmp/ruff.txt').read_text()
+              ruff_excerpt = ruff_text[:8000]
+              ruff_count = next(
+                  (line for line in reversed(ruff_text.splitlines()) if line.startswith('Found ')),
+                  'See raw report',
+              )
+          except Exception:
+              ruff_excerpt = '(no Ruff output)'
+              ruff_count = 'unknown'
+
+          lines = [
+              '## runO2 quality & safety evaluation',
+              '',
+              '| Check | Result | Role |',
+              '|---|---|---|',
+              f"| pytest | {os.getenv('TESTS_OUTCOME')} | behavioral correctness — hard gate |",
+              f"| Ruff | {os.getenv('RUFF_OUTCOME')} | code quality / likely mistakes |",
+              f"| Bandit | {os.getenv('BANDIT_OUTCOME')} | Python security patterns |",
+              f"| pip-audit | {os.getenv('PIPAUDIT_OUTCOME')} | known dependency vulnerabilities |",
+              f"| Semgrep CE | {os.getenv('SEMGREP_OUTCOME')} | static security / bug patterns |",
+              '',
+              '> Scanner findings are evidence to review, not proof of safety and not automatically bugs. During the baseline phase only tests are blocking.',
+              '',
+              f'### Ruff\n{ruff_count}\n',
+          ]
+
+          if bandit is not None:
+              metrics = bandit.get('metrics', {}).get('_totals', {})
+              lines += [
+                  '### Bandit',
+                  f"Issues: **{len(bandit.get('results', []))}** · high severity: **{metrics.get('SEVERITY.HIGH', 0)}** · high confidence: **{metrics.get('CONFIDENCE.HIGH', 0)}**",
+                  '',
+              ]
+          if audit is not None:
+              deps = audit.get('dependencies', audit if isinstance(audit, list) else [])
+              vulns = sum(len(d.get('vulns', [])) for d in deps if isinstance(d, dict))
+              lines += ['### pip-audit', f'Known vulnerability records: **{vulns}**', '']
+          if semgrep is not None:
+              lines += ['### Semgrep CE', f"Findings: **{len(semgrep.get('results', []))}**", '']
+
+          lines += ['### Ruff excerpt', '```text', ruff_excerpt, '```', '']
+          summary.write_text('\n'.join(lines))
+          PY
+
+      - name: Upload raw scanner reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-safety-python-reports
+          path: |
+            /tmp/ruff.txt
+            /tmp/bandit.json
+            /tmp/pip-audit.json
+            /tmp/semgrep.json
+          if-no-files-found: ignore
+
+  javascript-supply-chain:
+    name: Worker dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install Worker dependencies
+        run: npm install
+      - name: npm audit — known dependency vulnerabilities
+        continue-on-error: true
+        run: |
+          npm audit --json > /tmp/npm-audit.json || true
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('fs');
+          const j = JSON.parse(fs.readFileSync('/tmp/npm-audit.json', 'utf8'));
+          const v = j.metadata?.vulnerabilities || {};
+          console.log('## Worker dependency audit');
+          console.log(`Known vulnerabilities: **${v.total ?? 'unknown'}** (critical ${v.critical ?? 0}, high ${v.high ?? 0}, moderate ${v.moderate ?? 0})`);
+          console.log('\n> This reports known registry advisories; it does not prove a dependency is trustworthy or safe.');
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-report
+          path: /tmp/npm-audit.json
+          if-no-files-found: ignore

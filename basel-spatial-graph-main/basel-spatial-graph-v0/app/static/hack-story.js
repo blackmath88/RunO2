@@ -8,6 +8,7 @@
 
 (() => {
   const HACK_URL = 'https://hackamrhein.dev/warm-up';
+  const QUALITY_URL = 'https://github.com/blackmath88/RunO2/blob/main/docs/AI_QUALITY_SAFETY.md';
   const STORAGE_KEY = 'runo2-warmup-intro-seen-v1';
 
   const style = document.createElement('style');
@@ -45,9 +46,17 @@
     .architecture-break{border:1px solid var(--line);padding:16px;background:var(--paper)}
     .architecture-break b{display:block;font-size:13px;font-weight:400;margin-bottom:7px}
     .architecture-break p{font-size:10px;line-height:1.62;margin:0;color:var(--dim)}
-    .ai-note{border-left:2px solid var(--green);padding:4px 0 4px 17px;margin:28px 0 52px}
+    .ai-note{border-left:2px solid var(--green);padding:4px 0 4px 17px;margin:28px 0 42px}
     .ai-note strong{font-weight:400;color:var(--ink)}
-    @media(max-width:760px){.warmup-card{padding:23px 20px}.warmup-facts{grid-template-columns:1fr}.journey{grid-template-columns:1fr}.architecture-breaks{grid-template-columns:1fr}.story-pill{right:12px;bottom:12px}}
+    .quality-panel{border:1px solid var(--line);background:var(--panel2);padding:22px;margin:22px 0 52px}
+    .quality-panel h4{font-size:18px;font-weight:300;margin:0 0 9px}
+    .quality-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:18px 0}
+    .quality-cell{background:var(--paper);padding:13px 12px;font-family:"IBM Plex Mono",ui-monospace,monospace}
+    .quality-cell b{display:block;font-size:17px;font-weight:300;color:var(--ink);margin-bottom:4px}
+    .quality-cell span{display:block;font-size:8.5px;color:var(--dim);line-height:1.45;text-transform:uppercase;letter-spacing:.06em}
+    .quality-panel .finding{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;line-height:1.65;color:var(--dim);margin:7px 0}
+    .quality-panel .finding strong{font-weight:400;color:var(--ink)}
+    @media(max-width:760px){.warmup-card{padding:23px 20px}.warmup-facts{grid-template-columns:1fr}.journey{grid-template-columns:1fr}.architecture-breaks{grid-template-columns:1fr}.quality-grid{grid-template-columns:repeat(2,1fr)}.story-pill{right:12px;bottom:12px}}
   `;
   document.head.appendChild(style);
 
@@ -114,6 +123,23 @@
       <p>The architecture has to know the difference between <em>available data</em>, <em>usable evidence</em> and an <em>unsupported conclusion</em>. That means measured, modelled, forecast, dynamic and unknown values stay separate all the way to the interface.</p>
 
       <div class="ai-note"><p><strong>Built with AI — extensively.</strong> ChatGPT, Claude, delta.dev and VS Code were used for exploration, implementation, refactoring, tests, data investigation and interface iteration. The goal was not to prove I can type every line unaided. The boundary I cared about was different: AI may propose code and interpretations, but it does not get to decide what the data proves.</p></div>
+
+      <h3>So how did I check the AI-written code?</h3>
+      <p>I experimented with the same idea on the engineering side: do not ask one model to certify another model. Use independent ways to challenge the code — tests, static analysis, security scanners, dependency advisories and a skeptical senior/YAGNI review rubric.</p>
+      <div class="quality-panel">
+        <h4>First quality &amp; safety baseline · 8 Sep 2026</h4>
+        <div class="quality-grid">
+          <div class="quality-cell"><b>434 / 434</b><span>tests passing · 4 skipped</span></div>
+          <div class="quality-cell"><b>0</b><span>known Python dependency CVEs</span></div>
+          <div class="quality-cell"><b>0</b><span>known npm dependency CVEs</span></div>
+          <div class="quality-cell"><b>6 + 7</b><span>Semgrep + Bandit findings to review</span></div>
+        </div>
+        <div class="finding"><strong>One real issue:</strong> an upstream bulk download had no timeout. That was bounded.</div>
+        <div class="finding"><strong>Two scary-looking SHA-1 findings:</strong> actually compact deterministic IDs for public geometry, not security hashes. They were documented as non-security uses rather than needlessly changing persisted IDs.</div>
+        <div class="finding"><strong>Four browser supply-chain findings:</strong> external CDN resources lack Subresource Integrity. This stays visible as an open hardening item instead of disabling the rule.</div>
+        <div class="finding"><strong>739 Ruff findings:</strong> mostly typing/style modernization. No 598-file autofix spree — broad exception handling, datetime handling and other higher-signal items get reviewed separately.</div>
+        <p style="margin-top:15px"><a href="${QUALITY_URL}" target="_blank" rel="noopener">Read the method, findings and non-claims on GitHub ↗</a></p>
+      </div>
 
       <h3>What would break this architecture?</h3>
       <div class="architecture-breaks">

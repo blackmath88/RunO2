@@ -118,9 +118,13 @@ def _source_id(row, keys, point):
             return row[key]
     # Datasets like Schulstandorte publish no key; derive a stable one from the
     # position so ids survive re-ingestion instead of shifting with row order.
+    # SHA-1 is used only as a compact deterministic fingerprint, never for
+    # authentication, integrity or any other security property.
     import hashlib
 
-    return hashlib.sha1(f"{point[0]:.7f},{point[1]:.7f}".encode()).hexdigest()[:10]
+    return hashlib.sha1(
+        f"{point[0]:.7f},{point[1]:.7f}".encode(), usedforsecurity=False
+    ).hexdigest()[:10]
 
 
 def _point_of(geometry):

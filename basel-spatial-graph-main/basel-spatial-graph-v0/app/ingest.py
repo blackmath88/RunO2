@@ -58,9 +58,13 @@ def _source_id(record, kind, idx, geometry=None):
         if record.get(key) not in (None, ""):
             return str(record[key])
     # No natural key (e.g. school locations): derive a stable one from position,
-    # so ids survive re-ingestion instead of shifting with row order.
+    # so ids survive re-ingestion instead of shifting with row order. SHA-1 is
+    # intentionally only a compact deterministic fingerprint here, never a
+    # security boundary, signature, credential or integrity check.
     if geometry:
-        digest = hashlib.sha1(json.dumps(geometry, sort_keys=True).encode()).hexdigest()
+        digest = hashlib.sha1(
+            json.dumps(geometry, sort_keys=True).encode(), usedforsecurity=False
+        ).hexdigest()
         return digest[:10]
     return str(idx)
 
@@ -135,7 +139,11 @@ def cache_dataset_export(dataset_id: str, path, *, force: bool = False,
         return path
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".part")
-    with httpx.Client(timeout=None, follow_redirects=True) as client:
+    # Large exports may legitimately take longer than ordinary API calls, but
+    # they must not hang forever. Keep a short connect timeout and a generous
+    # per-operation read/write timeout.
+    export_timeout = httpx.Timeout(120.0, connect=15.0)
+    with httpx.Client(timeout=export_timeout, follow_redirects=True) as client:
         params = {"where": where} if where else None
         with client.stream("GET", f"{BASEL_API}/{dataset_id}/exports/csv",
                            params=params) as response:
