@@ -1,0 +1,67 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "runO2: tests",
+      "type": "shell",
+      "command": "pytest -q",
+      "options": {"cwd": "${workspaceFolder}/basel-spatial-graph-main/basel-spatial-graph-v0"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "runO2: Ruff review",
+      "type": "shell",
+      "command": "ruff check app tests",
+      "options": {"cwd": "${workspaceFolder}/basel-spatial-graph-main/basel-spatial-graph-v0"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "runO2: Bandit security",
+      "type": "shell",
+      "command": "bandit -r app",
+      "options": {"cwd": "${workspaceFolder}/basel-spatial-graph-main/basel-spatial-graph-v0"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "runO2: pip-audit dependencies",
+      "type": "shell",
+      "command": "pip-audit -r requirements.txt",
+      "options": {"cwd": "${workspaceFolder}/basel-spatial-graph-main/basel-spatial-graph-v0"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "runO2: Semgrep security",
+      "type": "shell",
+      "command": "semgrep scan --config auto app",
+      "options": {"cwd": "${workspaceFolder}/basel-spatial-graph-main/basel-spatial-graph-v0"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "runO2: npm audit Worker",
+      "type": "shell",
+      "command": "npm audit",
+      "options": {"cwd": "${workspaceFolder}"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "runO2: full local quality baseline",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "runO2: tests",
+        "runO2: Ruff review",
+        "runO2: Bandit security",
+        "runO2: pip-audit dependencies",
+        "runO2: Semgrep security",
+        "runO2: npm audit Worker"
+      ],
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}
