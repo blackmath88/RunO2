@@ -37,7 +37,10 @@ jobs:
       - name: Ruff — code quality baseline
         id: ruff
         continue-on-error: true
-        run: ruff check app tests --output-format concise | tee /tmp/ruff.txt
+        shell: bash
+        run: |
+          set -o pipefail
+          ruff check app tests --output-format concise | tee /tmp/ruff.txt
 
       - name: Bandit — Python security patterns
         id: bandit
@@ -78,9 +81,15 @@ jobs:
           audit = load('/tmp/pip-audit.json')
           semgrep = load('/tmp/semgrep.json')
           try:
-              ruff_excerpt = pathlib.Path('/tmp/ruff.txt').read_text()[:8000]
+              ruff_text = pathlib.Path('/tmp/ruff.txt').read_text()
+              ruff_excerpt = ruff_text[:8000]
+              ruff_count = next(
+                  (line for line in reversed(ruff_text.splitlines()) if line.startswith('Found ')),
+                  'See raw report',
+              )
           except Exception:
               ruff_excerpt = '(no Ruff output)'
+              ruff_count = 'unknown'
 
           lines = [
               '## runO2 quality & safety evaluation',
@@ -95,6 +104,7 @@ jobs:
               '',
               '> Scanner findings are evidence to review, not proof of safety and not automatically bugs. During the baseline phase only tests are blocking.',
               '',
+              f'### Ruff\n{ruff_count}\n',
           ]
 
           if bandit is not None:
