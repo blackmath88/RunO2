@@ -1,0 +1,36 @@
+name: Deploy runO2 to Cloudflare
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/**'
+      - 'Dockerfile'
+      - 'wrangler.jsonc'
+      - 'package.json'
+      - 'basel-spatial-graph-main/basel-spatial-graph-v0/app/**'
+      - 'basel-spatial-graph-main/basel-spatial-graph-v0/data/**'
+      - '.github/workflows/deploy-cloudflare.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Cloudflare credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || (echo 'Missing CLOUDFLARE_API_TOKEN repository secret' && exit 1)
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo 'Missing CLOUDFLARE_ACCOUNT_ID repository secret' && exit 1)
+      - run: npm install
+      - name: Deploy Worker + container + custom domain
+        run: npm run deploy
