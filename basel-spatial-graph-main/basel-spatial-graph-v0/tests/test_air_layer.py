@@ -345,10 +345,11 @@ def test_baseline_covers_effectively_the_whole_basel_network(baseline):
     from app.air.attribute import _segment_midpoints
     from app.street_sources import load_network
 
-    network = load_network("walk", force_fixture=False)
-    ids, xs, ys, _ = _segment_midpoints(network)
-    if len(ids) < 1000:
+    try:
+        network = load_network("walk", source="osmnx")
+    except Exception:
         pytest.skip("prepared Basel network not present")
+    ids, xs, ys, _ = _segment_midpoints(network)
     values = baseline.sample(xs, ys, "no2")
     covered = sum(v is not None for v in values)
     assert covered / len(ids) > 0.95

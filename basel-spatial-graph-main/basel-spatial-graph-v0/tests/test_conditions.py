@@ -81,3 +81,51 @@ def test_a_loop_climbs_as_much_as_it_descends():
 def test_too_few_points_reports_nothing_rather_than_zero():
     profile = terrain_profile([100.0], [0.0])
     assert profile["ascent_m"] is None
+
+
+# --- degrading without breaking -------------------------------------------
+#
+# The suite blocks every socket, so these calls exercise exactly the path a
+# demo takes when the venue wifi drops: the forecast is gone, and the route
+# still has to be plannable.
+
+
+def test_conditions_report_what_is_missing_instead_of_raising():
+    from app.air.conditions import fetch_conditions
+
+    result = fetch_conditions(47.5596, 7.5886)
+    assert result["classification"] == "forecast"
+    assert result["partial"], "a failed fetch must be declared, not swallowed"
+    assert len(result["partial"]) == 2          # weather and air quality both named
+
+
+def test_terrain_says_it_is_unavailable_rather_than_reporting_zero_climb():
+    """A flat profile and an absent one must not look the same."""
+    from app.air.conditions import fetch_terrain
+
+    result = fetch_terrain([[7.58, 47.55], [7.60, 47.56], [7.58, 47.55]])
+    assert result["ascent_m"] is None
+    assert result["unavailable"]
+
+
+def test_the_planner_still_answers_when_every_forecast_service_is_down():
+    """The route is the product; conditions are context."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.air.api import router
+    from app.air.testing import CENTRE
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+    lon, lat = CENTRE
+    response = client.get("/run/report", params={
+        "lon": lon, "lat": lat, "distance_m": 2000, "conditions": True,
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["run"]["distance_km"] > 0
+    assert body["why_this_route"]
+    assert body["conditions"]["partial"]        # labelled unavailable, not faked
+    assert body["terrain"]["ascent_m"] is None
