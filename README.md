@@ -4,7 +4,7 @@
 
 runO2 is a quick **Hack am Rhein Warm Up 2026** experiment: a running-loop planner for Basel built on a typed spatial graph of the city — and an honest answer to the question it was built to ask.
 
-**Live app:** https://runo2.bridge-work.ai  
+**Deployment target:** https://runo2.bridge-work.ai *(Cloudflare deployment configured; currently awaiting repository credentials)*  
 **Hack am Rhein Warm Up:** https://hackamrhein.dev/warm-up
 
 Pick a start point, distance and hour; compare a few candidate loops by air-quality evidence, coverage, weather, pollen and terrain; export the one you want as GPX.
@@ -93,15 +93,26 @@ What seems more durable than the route-planner idea is the architectural questio
 
 > Can applications distinguish between data that is available, evidence that is usable, and conclusions that are unsupported?
 
-## Built heavily with AI
+## Built heavily with AI — then challenged
 
 This project was built with extensive use of **ChatGPT, Claude, delta.dev and VS Code** for research, coding, refactoring, testing, architecture review, UX iteration and documentation.
 
 The intended boundary is simple:
 
-> AI can propose code and interpretations. It does not decide what the data is allowed to prove.
+> AI can propose code and interpretations. It does not decide what the data is allowed to prove — and another AI does not get to certify the code as safe merely by saying it looks good.
 
-The evidence checks, provenance classes and deterministic route logic remain explicit and reproducible.
+So the project now runs a transparent multi-lens engineering evaluation:
+
+- **434 tests** as the behavioral hard gate
+- **Ruff** for broad code-quality review
+- **Bandit + Semgrep CE + CodeQL** for independent security/static-analysis lenses
+- **pip-audit + npm audit + Dependabot** for known dependency risk and drift
+- a repository **`AGENTS.md` senior/YAGNI review rubric**, inspired by Ponytail-style sparring
+- local **VS Code tasks** for running the same checks before a commit
+
+The first baseline found **0 known Python dependency CVEs and 0 known npm dependency CVEs**, while static scanners produced findings that were manually classified rather than blindly autofixed. One real issue — an unbounded upstream download timeout — was fixed. Several scary-looking hash/random/XML findings were non-security uses. CDN Subresource Integrity remains an explicit browser-side hardening item.
+
+See **[AI-assisted code quality & safety](docs/AI_QUALITY_SAFETY.md)** for the first baseline, the finding classifications, and what these checks explicitly do **not** prove.
 
 ## Run locally
 
@@ -118,7 +129,7 @@ The repository ships a frozen snapshot of real Basel data plus a small clip of t
 
 ## Cloudflare deployment
 
-Production is designed for **Cloudflare Worker + Cloudflare Container** at:
+Production is configured for **Cloudflare Worker + Cloudflare Container** at:
 
 ```text
 https://runo2.bridge-work.ai
@@ -142,12 +153,12 @@ CLOUDFLARE_API_TOKEN
 CLOUDFLARE_ACCOUNT_ID
 ```
 
-Once configured, pushes affecting the app/deployment files deploy via Wrangler. The custom domain is declared in `wrangler.jsonc`; Cloudflare creates the DNS record and certificate when the deployment is authorized.
+**Current deployment status:** the workflow is wired and has been executed, but stopped at its credential check because those two secrets are not yet present in this repository. Once they are added, rerunning the workflow will build the container, deploy the Worker and request the custom-domain DNS/certificate configuration from Cloudflare.
 
 ## Layout
 
 ```text
-docs/                              concept and UX material
+docs/                              concept, UX and evaluation material
 cloudflare/                         Worker front door
 basel-spatial-graph-main/
   basel-spatial-graph-v0/          FastAPI application + prepared data
@@ -163,6 +174,7 @@ The nested `basel-spatial-graph-main/basel-spatial-graph-v0/` path reflects the 
 
 ## Documentation
 
+- [AI_QUALITY_SAFETY.md](docs/AI_QUALITY_SAFETY.md) — how AI-written code is challenged, first results and non-claims
 - [DATA_FIT.md](basel-spatial-graph-main/basel-spatial-graph-v0/docs/DATA_FIT.md) — which open datasets can carry runO2, and why
 - [CLEAN_AIR_RUN.md](basel-spatial-graph-main/basel-spatial-graph-v0/docs/CLEAN_AIR_RUN.md) — the air layer's design
 - [AIR_VIABILITY_REAL.md](basel-spatial-graph-main/basel-spatial-graph-v0/experiments/AIR_VIABILITY_REAL.md) — the gates on real data
