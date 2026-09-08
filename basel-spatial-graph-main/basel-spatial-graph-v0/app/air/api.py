@@ -75,8 +75,10 @@ def _load_network():
 def _load_baseline(network):
     """Modelled NO2 per segment, from the clipped federal raster.
 
-    Optional by design: the planner still works without it, and says so, but
-    the ranking falls back to values that cannot separate the routes.
+    The planner can still run in fixture mode without this file for deterministic
+    tests. A real deployment may not fall back to tram PM2.5 for ranking: the
+    resolution experiment established that those measurements cannot separate
+    Basel streets defensibly.
     """
     if not AirBaseline.available():
         return {}, None
@@ -88,7 +90,7 @@ def _load_baseline(network):
             {sid: value for sid, value in zip(ids, values) if value is not None},
             baseline.provenance("no2"),
         )
-    except Exception:                   # a missing baseline must not break the planner
+    except Exception:
         return {}, None
 
 
@@ -157,6 +159,26 @@ def _source_provenance(source: AirSource, readings) -> dict:
     }
 
 
+def _require_defensible_air_ranking(prepared: Prepared) -> None:
+    """Fail closed rather than rank real routes with evidence known to be too noisy.
+
+    The synthetic fixture remains usable for tests and offline demos. In a real
+    data mode, however, the product's own resolution gate rules out tram PM2.5
+    as a substitute for the federal modelled NO2 baseline.
+    """
+    if prepared.baseline or _fixture_mode():
+        return
+    raise HTTPException(
+        status_code=503,
+        detail=(
+            "Air ranking unavailable: the federal NO2 spatial baseline could not "
+            "be loaded. runO2 will not fall back to tram PM2.5 because its "
+            "resolution test found that sensor disagreement exceeds the "
+            "street-to-street signal needed to rank routes."
+        ),
+    )
+
+
 @router.get("/loops")
 def loops(
     lon: float = Query(..., description="start longitude"),
@@ -167,6 +189,7 @@ def loops(
     limit: int = Query(3, ge=1, le=6),
 ):
     prepared = _prepared()
+    _require_defensible_air_ranking(prepared)
     network, segments = prepared.network, prepared.segments
     candidates = generate_loops(
         network, segments, lon=lon, lat=lat, target_m=distance_m,
@@ -193,10 +216,11 @@ def loops(
             **prepared.source_provenance,
         },
         "baseline_source": prepared.baseline_provenance,
+        "air_ranking_available": bool(prepared.baseline) or _fixture_mode(),
         "ranked_by": (
             "modelled annual-mean NO2 (federal raster)"
             if prepared.baseline else
-            "measured PM2.5 per measured minute"
+            "synthetic fixture field (test/demo mode only)"
         ),
     }
 
@@ -211,6 +235,7 @@ def gpx(
     index: int = Query(0, ge=0, le=5),
 ):
     prepared = _prepared()
+    _require_defensible_air_ranking(prepared)
     network, segments = prepared.network, prepared.segments
     candidates = generate_loops(
         network, segments, lon=lon, lat=lat, target_m=distance_m,
@@ -285,6 +310,7 @@ def report(
     half-loaded one would invite reading the air figure without its coverage.
     """
     prepared = _prepared()
+    _require_defensible_air_ranking(prepared)
     network, segments = prepared.network, prepared.segments
     candidates = generate_loops(
         network, segments, lon=lon, lat=lat, target_m=distance_m,
