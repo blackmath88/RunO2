@@ -155,6 +155,16 @@ CLOUDFLARE_ACCOUNT_ID
 
 **Current deployment status:** the workflow is wired and has been executed, but stopped at its credential check because those two secrets are not yet present in this repository. Once they are added, rerunning the workflow will build the container, deploy the Worker and request the custom-domain DNS/certificate configuration from Cloudflare.
 
+## Render deployment
+
+Create a **Web Service** from this repository with runtime **Docker**, branch
+**main**, and instance type **Free**. Leave **Root Directory** empty, use
+**Dockerfile Path** `./Dockerfile` and **Docker Build Context Directory** `.`,
+and leave **Docker Command** empty. No custom environment variables or secrets
+are required: the app listens on `0.0.0.0:$PORT` using Render's supplied port,
+falling back to `8080` for local Docker and Cloudflare Containers. Use `/health`
+for the health check and open `/run` for the planner.
+
 ## Layout
 
 ```text
