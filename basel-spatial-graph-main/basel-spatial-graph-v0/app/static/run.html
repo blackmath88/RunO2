@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{
-  --paper:#0B1114; --panel:#101A1E; --panel2:#0E171A; --ink:#DCE5E2; --dim:#7C8D8B;
+  --nav-height:52px; --paper:#0B1114; --panel:#101A1E; --panel2:#0E171A; --ink:#DCE5E2; --dim:#7C8D8B;
   --faint:#3B4A4C; --line:#1E2C30; --green:#4E9E86; --green2:#73B39E; --amber:#C9A227;
   --orange:#D6721F; --red:#D6301F; --blue:#6B96AE; --white:#F4F7F6;
 }
@@ -23,8 +23,28 @@ button,input{font:inherit}
 .muted{color:var(--dim)}
 a{color:var(--green2)}
 
+/* ---------- field-study index ---------- */
+.site-index{position:sticky;top:0;z-index:1500;height:var(--nav-height);display:flex;align-items:center;gap:24px;padding:0 24px;background:rgba(11,17,20,.97);backdrop-filter:blur(12px);border-bottom:1px solid #334347}
+.index-brand{flex:none;text-decoration:none;color:var(--ink);font-size:17px}
+.index-links{display:flex;align-items:stretch;gap:20px;overflow-x:auto;min-width:0;height:100%;scrollbar-width:thin}
+.index-links a{display:flex;align-items:center;flex:none;border-bottom:2px solid transparent;color:#aab9b5;text-decoration:none;font:10px "IBM Plex Mono",monospace;white-space:nowrap}
+.index-links a[aria-current="location"]{color:var(--white);border-bottom-color:var(--green2)}
+.index-identity{margin-left:auto;flex:none;border:0;background:none;padding:4px 0;text-align:right;color:#aab9b5;font:9px "IBM Plex Mono",monospace;cursor:pointer;line-height:1.5}
+.index-identity strong{display:block;font-size:9px;letter-spacing:.1em;font-weight:400;color:var(--green2)}
+:where(a,button,input):focus-visible{outline:2px solid var(--green2);outline-offset:3px}
+:where(#top,#demo,#planner,#data,#story,#findings,#data-fit,#architecture,#quality){scroll-margin-top:calc(var(--nav-height) + 12px)}
+#demo,#planner{scroll-margin-top:var(--nav-height)}
+@media(max-width:1100px){.site-index{gap:16px;padding:0 16px}.index-links{gap:14px}.index-identity{font-size:8px}}
+@media(max-width:760px){
+  :root{--nav-height:56px}
+  .site-index{display:grid;grid-template-columns:auto 1fr;grid-template-rows:25px 31px;gap:0 12px;padding:0 12px}
+  .index-brand{font-size:14px}.index-identity{font-size:8px;padding:0;display:flex;gap:8px;align-items:center}.index-identity strong{font-size:8px}
+  .index-links{grid-column:1 / -1;grid-row:2;gap:20px}.index-links a{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
 /* ---------- intro ---------- */
-.hero{height:100vh;min-height:640px;position:relative;overflow:hidden;background:#091013;display:flex;align-items:flex-end}
+.hero{height:calc(100svh - var(--nav-height));min-height:640px;position:relative;overflow:hidden;background:#091013;display:flex;align-items:flex-end}
 .hero-media{position:absolute;inset:-8%;transform:translateY(var(--hero-shift,0px)) scale(1.08);transition:transform .08s linear;filter:saturate(.65) contrast(1.1)}
 .hero-media:before{content:"";position:absolute;inset:0;background:
   radial-gradient(circle at 70% 45%,rgba(78,158,134,.22),transparent 26%),
@@ -47,7 +67,7 @@ a{color:var(--green2)}
 .scrollhint{position:absolute;z-index:5;right:34px;bottom:34px;font-family:"IBM Plex Mono";font-size:10px;color:#657673;writing-mode:vertical-rl;letter-spacing:.13em}
 
 /* ---------- planner ---------- */
-.planner{height:100vh;min-height:720px;display:grid;grid-template-columns:360px 1fr;background:var(--paper);border-top:1px solid #152227}
+.planner{height:calc(100svh - var(--nav-height));min-height:640px;display:grid;grid-template-columns:360px 1fr;background:var(--paper);border-top:1px solid #152227}
 .sidebar{background:var(--paper);border-right:1px solid var(--line);padding:22px 22px 18px;display:flex;flex-direction:column;overflow:auto}
 .sidebar-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid var(--line)}
 .sidebar .logo{font-family:"IBM Plex Mono"}
@@ -80,7 +100,7 @@ a{color:var(--green2)}
 .layers{pointer-events:auto;background:rgba(11,17,20,.88);border:1px solid var(--line);padding:5px;display:flex;gap:3px}
 .layers button{border:0;background:none;color:var(--dim);font-family:"IBM Plex Mono";font-size:9px;padding:5px 6px;cursor:pointer}
 .layers button.active{color:var(--ink);background:#172327}
-.route-results{position:absolute;right:18px;bottom:18px;width:325px;display:grid;gap:8px;z-index:500}
+.route-results{position:absolute;right:18px;bottom:42px;width:325px;max-height:calc(100% - 160px);overflow-y:auto;display:grid;gap:8px;z-index:500}
 .route-card{background:rgba(11,17,20,.92);border:1px solid var(--line);backdrop-filter:blur(9px);padding:12px 13px;cursor:pointer;transition:.15s}
 .route-card:hover,.route-card.active{border-color:#39675a;transform:translateY(-1px)}
 .route-card.active{background:rgba(14,31,26,.94)}
@@ -94,7 +114,7 @@ a{color:var(--green2)}
 .route-note strong{color:var(--amber);font-weight:400}
 .coverage-bar{height:3px;background:#22333a;margin-top:8px;display:flex;overflow:hidden}
 .coverage-bar i{display:block;height:100%}
-.notice{position:absolute;left:20px;bottom:18px;max-width:330px;background:rgba(11,17,20,.92);border:1px solid var(--line);border-left:2px solid var(--amber);padding:10px 12px;font-family:"IBM Plex Mono";font-size:10px;line-height:1.55;color:#9caeaa;z-index:500}
+.notice{margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-left:2px solid var(--amber);padding:10px 12px;font-family:"IBM Plex Mono";font-size:10px;line-height:1.55;color:#9caeaa;flex-shrink:0}
 
 /* ---------- report ---------- */
 .modal{position:fixed;inset:0;z-index:2000;background:rgba(3,7,8,.72);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:28px}
@@ -173,10 +193,13 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
 @media(max-width:900px){
   .planner{height:auto;grid-template-columns:1fr}
   .sidebar{border-right:0;border-bottom:1px solid var(--line)}
-  .map{height:74vh;min-height:520px}
-  .route-results{left:12px;right:12px;width:auto;bottom:12px}
+  .map{height:calc(100svh - var(--nav-height));min-height:520px}
+  .route-results{left:12px;right:12px;width:auto;bottom:42px;max-height:45%}
   .route-card:not(.active){display:none}
-  .notice{position:static;max-width:none;margin:12px}
+  .notice{margin-top:12px}
+  .map-top{left:12px;right:12px;flex-direction:column}
+  .leaflet-bottom.leaflet-left{bottom:0}
+  .route-results{left:54px}
   .report-grid{grid-template-columns:1fr}
   .side-report{border-left:0;border-top:1px solid var(--line)}
   .summary{grid-template-columns:repeat(3,1fr)}
@@ -188,9 +211,23 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
 </style>
 </head>
 <body>
+<header class="site-index">
+  <a class="index-brand mono" href="#top" aria-label="runO2 introduction">runO<sub>2</sub></a>
+  <nav class="index-links" aria-label="Experiment sections">
+    <a href="#demo" aria-current="location">Demo</a>
+    <a href="#story">How it works</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#quality">Quality</a>
+    <a href="#findings">What we found</a>
+    <a href="#data-fit">Data fitness</a>
+  </nav>
+  <button class="index-identity" id="storyIntro" aria-haspopup="dialog" aria-controls="warmupIntro" aria-label="About this Hack am Rhein demo; not a validated health recommendation system">
+    <span>Hack am Rhein Warm Up · 2026</span><strong>DEMO / EXPERIMENT</strong>
+  </button>
+</header>
 
 <!-- ============ ACT 1 : INTRO ============ -->
-<section class="hero">
+<section class="hero" id="top">
   <div class="hero-media"></div>
   <div class="hero-grain"></div>
   <div class="hero-shade"></div>
@@ -199,7 +236,7 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
     <div class="top-meta mono"><span>BASEL / 47.56° N</span><span id="heroDate">—</span></div>
   </div>
   <div class="hero-copy">
-    <div class="eyebrow">Hack am Rhein · warm-up</div>
+    <div class="eyebrow">Open data · field experiment</div>
     <h1>Basel's trams<br>measure the air.<br><em>What does your route pass through?</em></h1>
     <p>Plan a running loop around distance, conditions and what the city's open air
        data can actually tell you. Unmeasured streets stay unmeasured — and we show
@@ -211,6 +248,7 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
 </section>
 
 <!-- ============ ACT 2 : PLANNER ============ -->
+<div id="demo">
 <section class="planner" id="planner">
   <aside class="sidebar">
     <div class="sidebar-header">
@@ -258,6 +296,7 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
     </div>
 
     <button class="plan-btn" id="planBtn">FIND 3 ROUTES →</button>
+    <div class="notice" id="notice" hidden></div>
   </aside>
 
   <div class="map">
@@ -271,9 +310,9 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
       </div>
     </div>
     <div class="route-results" id="routeResults"></div>
-    <div class="notice" id="notice" hidden></div>
   </div>
 </section>
+</div>
 
 <!-- ============ PRE-RUN REPORT ============ -->
 <div class="modal" id="reportModal">
@@ -313,7 +352,7 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
 
 <!-- ============ ACTS 3–5 : THE DATA ============ -->
 <section class="story" id="data">
-  <h2>Can this dataset actually power the product?</h2>
+  <h2 id="findings" tabindex="-1">Can this dataset actually power the product?</h2>
   <p class="lede">runO2 started from a good idea: Basel put particulate sensors on tram
     roofs and published the readings. We built the planner, then tested whether the data
     can carry it. It cannot — and the reason is more interesting than the idea was.</p>
@@ -386,7 +425,7 @@ footer.site{border-top:1px solid var(--line);padding:38px 7vw 60px;font-family:"
     and it does not — it reaches roughly a third of it. More trams would add coverage,
     not resolution. Only calibration against reference instruments would.</p>
 
-  <h3 class="sec">What the sensors are worth</h3>
+  <h3 class="sec" id="data-fit" tabindex="-1">What the sensors are worth</h3>
   <p class="sec">Basel also publishes a comparison campaign: low-cost microsensors installed
     beside the Lufthygieneamt's reference instruments. Pairing them by hour gives the only
     real error figure for this class of instrument in this city.</p>

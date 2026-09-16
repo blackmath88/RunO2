@@ -29,8 +29,7 @@
     .warmup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
     .warmup-actions button,.warmup-actions a{border:1px solid var(--line);background:none;color:var(--ink);padding:11px 14px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10.5px;text-decoration:none;cursor:pointer}
     .warmup-actions .primary{background:var(--white);color:#07100d;border-color:var(--white)}
-    .story-pill{position:fixed;z-index:1400;right:18px;bottom:18px;border:1px solid #314349;background:rgba(11,17,20,.9);backdrop-filter:blur(9px);color:#aab9b5;padding:9px 11px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.04em;cursor:pointer;display:none}
-    .story-pill.show{display:block}
+
     .story-extension{margin:0 0 70px}
     .story-extension .story-kicker{font-family:"IBM Plex Mono",ui-monospace,monospace;color:var(--green2);font-size:9px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
     .story-extension h3{font-size:28px;font-weight:300;letter-spacing:-.025em;margin:0 0 12px}
@@ -56,13 +55,15 @@
     .quality-cell span{display:block;font-size:8.5px;color:var(--dim);line-height:1.45;text-transform:uppercase;letter-spacing:.06em}
     .quality-panel .finding{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;line-height:1.65;color:var(--dim);margin:7px 0}
     .quality-panel .finding strong{font-weight:400;color:var(--ink)}
-    @media(max-width:760px){.warmup-card{padding:23px 20px}.warmup-facts{grid-template-columns:1fr}.journey{grid-template-columns:1fr}.architecture-breaks{grid-template-columns:1fr}.quality-grid{grid-template-columns:repeat(2,1fr)}.story-pill{right:12px;bottom:12px}}
+    @media(max-width:760px){.warmup-card{padding:23px 20px}.warmup-facts{grid-template-columns:1fr}.journey{grid-template-columns:1fr}.architecture-breaks{grid-template-columns:1fr}.quality-grid{grid-template-columns:repeat(2,1fr)}}
   `;
   document.head.appendChild(style);
 
   const overlay = document.createElement('div');
   overlay.className = 'warmup-overlay';
   overlay.id = 'warmupIntro';
+  overlay.inert = true;
+  overlay.setAttribute('aria-hidden', 'true');
   overlay.innerHTML = `
     <div class="warmup-card" role="dialog" aria-modal="true" aria-labelledby="warmupTitle">
       <div class="warmup-kicker">
@@ -88,17 +89,13 @@
     </div>`;
   document.body.appendChild(overlay);
 
-  const pill = document.createElement('button');
-  pill.className = 'story-pill';
-  pill.textContent = 'ⓘ HACK AM RHEIN / STORY';
-  pill.setAttribute('aria-label', 'Open the Hack am Rhein project introduction');
-  document.body.appendChild(pill);
-
+  const introButton = document.getElementById('storyIntro');
   const story = document.getElementById('data');
   if (story) {
     const extension = document.createElement('div');
     extension.className = 'story-extension';
     extension.id = 'story';
+    extension.tabIndex = -1;
     extension.innerHTML = `
       <div class="story-kicker">Hack am Rhein Warm Up · why this exists</div>
       <h3>A route planner? Maybe. An experiment in what open data can tell us? Definitely.</h3>
@@ -119,12 +116,12 @@
         <p>A city with denser, calibrated and current mobile sensing might produce a very different answer. For now, runO2 should be read as an experiment, not a product or health claim.</p>
       </div>
 
-      <h3>What is interesting underneath the app?</h3>
+      <h3 id="architecture" tabindex="-1">What is interesting underneath the app?</h3>
       <p>The architecture has to know the difference between <em>available data</em>, <em>usable evidence</em> and an <em>unsupported conclusion</em>. That means measured, modelled, forecast, dynamic and unknown values stay separate all the way to the interface.</p>
 
       <div class="ai-note"><p><strong>Built with AI — extensively.</strong> ChatGPT, Claude, delta.dev and VS Code were used for exploration, implementation, refactoring, tests, data investigation and interface iteration. The goal was not to prove I can type every line unaided. The boundary I cared about was different: AI may propose code and interpretations, but it does not get to decide what the data proves.</p></div>
 
-      <h3>So how did I check the AI-written code?</h3>
+      <h3 id="quality" tabindex="-1">So how did I check the AI-written code?</h3>
       <p>I experimented with the same idea on the engineering side: do not ask one model to certify another model. Use independent ways to challenge the code — tests, static analysis, security scanners, dependency advisories and a skeptical senior/YAGNI review rubric.</p>
       <div class="quality-panel">
         <h4>First quality &amp; safety baseline · 8 Sep 2026</h4>
@@ -163,14 +160,18 @@
   function openIntro() {
     movePlannerBehindOverlay();
     overlay.classList.add('open');
-    pill.classList.remove('show');
+    overlay.inert = false;
+    overlay.removeAttribute('aria-hidden');
+    overlay.querySelector('button').focus({ preventScroll: true });
   }
 
   function closeIntro(target) {
     overlay.classList.remove('open');
-    sessionStorage.setItem(STORAGE_KEY, '1');
-    pill.classList.add('show');
-    if (target) setTimeout(() => document.querySelector(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    overlay.inert = true;
+    overlay.setAttribute('aria-hidden', 'true');
+    try { sessionStorage.setItem(STORAGE_KEY, '1'); } catch {}
+    introButton.focus({ preventScroll: true });
+    if (target) setTimeout(() => document.querySelector(target)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }), 80);
   }
 
   overlay.addEventListener('click', (event) => {
@@ -178,11 +179,53 @@
     if (action === 'explore') closeIntro('#planner');
     if (action === 'story') closeIntro('#story');
   });
-  pill.addEventListener('click', openIntro);
+  introButton.addEventListener('click', openIntro);
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab' && overlay.classList.contains('open')) {
+      const focusable = [...overlay.querySelectorAll('a, button')];
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
     if (event.key === 'Escape' && overlay.classList.contains('open')) closeIntro('#planner');
   });
 
-  if (sessionStorage.getItem(STORAGE_KEY)) pill.classList.add('show');
-  else requestAnimationFrame(openIntro);
+  // Keep ordinary anchors usable independently of the planner and map library.
+  const links = [...document.querySelectorAll('.index-links a')];
+  const sections = links.map(link => ({ link, target: document.querySelector(link.hash) }))
+    .filter(item => item.target).sort((a, b) =>
+      a.target.compareDocumentPosition(b.target) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1);
+  let queued = false;
+  function updateIndex() {
+    queued = false;
+    const line = document.querySelector('.site-index').getBoundingClientRect().bottom + 24;
+    let current = sections[0];
+    for (const section of sections) {
+      if (section.target.getBoundingClientRect().top <= line) current = section;
+    }
+    if (!current.link.hasAttribute('aria-current')) {
+      const strip = current.link.parentElement;
+      const linkBox = current.link.getBoundingClientRect();
+      const stripBox = strip.getBoundingClientRect();
+      if (linkBox.left < stripBox.left || linkBox.right > stripBox.right) {
+        strip.scrollLeft += linkBox.left - stripBox.left - (stripBox.width - linkBox.width) / 2;
+      }
+    }
+    for (const { link } of sections) {
+      if (link === current.link) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    }
+  }
+  function scheduleIndex() {
+    if (!queued) { queued = true; requestAnimationFrame(updateIndex); }
+  }
+  window.addEventListener('scroll', scheduleIndex, { passive: true });
+  window.addEventListener('resize', scheduleIndex);
+  updateIndex();
+
+  // Dynamic story anchors also work when opening a shared deep link.
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+  let seen = false;
+  try { seen = sessionStorage.getItem(STORAGE_KEY); } catch {}
+  if (!seen && !location.hash) requestAnimationFrame(openIntro);
 })();
