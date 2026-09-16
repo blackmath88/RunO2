@@ -243,7 +243,7 @@ function segmentTooltip(seg) {
                contributes nothing to the measured figure.</span>`);
   }
   rows.push(`<span style="color:#7C8D8B">${seg.minutes} min on this stretch</span>`);
-  return `<div style="font-family:'IBM Plex Mono';font-size:10px;line-height:1.6;max-width:270px">
+  return `<div style="font-family:var(--mono);font-size:12.5px;line-height:1.55;max-width:300px">
             ${rows.join('<br>')}</div>`;
 }
 
@@ -334,7 +334,7 @@ function renderReport(r) {
        <span>${r.run.distance_km} km</span>`;
   } else {
     $('reportElev').innerHTML =
-      `<div class="mono muted" style="font-size:10px;padding-top:38px">
+      `<div class="mono muted" style="font-size:12px;padding-top:38px">
          Elevation unavailable${t.unavailable ? ` (${t.unavailable})` : ''}.</div>`;
   }
 
