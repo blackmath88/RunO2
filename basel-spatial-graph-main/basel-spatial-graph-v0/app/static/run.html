@@ -107,7 +107,7 @@ a{color:var(--green2)}
 .range-line input{flex:1;accent-color:var(--green)}
 .range-line .muted{font-family:var(--mono);font-size:12px}
 .range-value{font-family:var(--mono);font-size:20px;font-weight:500;min-width:72px;text-align:right}
-.plan-btn{margin-top:auto;background:var(--white);color:#07100d;border:0;padding:15px 14px;font-size:15px;font-weight:600;letter-spacing:.04em;cursor:pointer}
+.plan-btn{position:relative;overflow:hidden;margin-top:auto;background:var(--white);color:#07100d;border:0;padding:15px 14px;font-size:15px;font-weight:600;letter-spacing:.04em;cursor:pointer}
 .plan-btn:hover{background:#dbe7e3}
 .plan-btn[disabled]{opacity:.5;cursor:progress}
 
@@ -139,6 +139,42 @@ a{color:var(--green2)}
 .coverage-bar i{display:block;height:100%}
 .notice{margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-left:2px solid var(--amber);padding:12px 13px;font-size:13.5px;line-height:1.55;color:var(--ink2);flex-shrink:0}
 .notice b,.notice strong{font-weight:600;color:var(--ink)}
+
+/* ---------- map loading state ----------
+   Covers the map only: the site frame, the sidebar and Leaflet's attribution
+   layer (z-index 1000) all stay visible above it. */
+.map-loading{position:absolute;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;
+  padding:28px;background:rgba(8,13,15,.94);opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .3s ease,visibility .3s}
+.map-loading.open{opacity:1;visibility:visible;pointer-events:auto}
+.ml-scan{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(90deg,transparent,rgba(78,158,134,.45) 40%,rgba(78,158,134,.45) 60%,transparent);
+  background-size:100% 1px;background-repeat:no-repeat;animation:ml-sweep 3.6s linear infinite}
+@keyframes ml-sweep{from{background-position:0 0}to{background-position:0 100%}}
+.ml-panel{position:relative;width:min(430px,100%);border-left:2px solid var(--green);padding:2px 0 2px 20px}
+.ml-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.ml-phase{font-size:19px;font-weight:500;line-height:1.35;color:var(--white);margin:10px 0 16px}
+.ml-bar{display:grid;grid-template-columns:repeat(var(--steps,4),1fr);gap:3px;height:3px;margin-bottom:16px}
+.ml-bar i{display:block;background:#22333a}
+.ml-bar i.done{background:#2F5F52}
+.ml-bar i.now{background:var(--green);animation:ml-pulse 1.5s ease-in-out infinite}
+@keyframes ml-pulse{0%,100%{opacity:.62}50%{opacity:1}}
+.ml-note{font-size:13px;line-height:1.55;color:var(--ink2);margin:0 0 10px;max-width:46ch}
+.ml-detail{font-family:var(--mono);font-size:12px;line-height:1.55;color:var(--amber);margin:0 0 10px;max-width:46ch}
+.ml-meta{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.ml-retry{margin-top:18px;background:var(--white);color:#07100d;border:0;padding:12px 16px;
+  font-size:14px;font-weight:600;letter-spacing:.03em;cursor:pointer}
+.ml-retry:hover{background:#dbe7e3}
+.map-loading.error .ml-panel{border-left-color:var(--orange)}
+.map-loading.error .ml-scan,.map-loading.error .ml-bar{display:none}
+.plan-btn.is-loading::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:38%;
+  background:var(--green);animation:ml-slide 1.6s ease-in-out infinite}
+@keyframes ml-slide{from{transform:translateX(-110%)}to{transform:translateX(275%)}}
+@media(prefers-reduced-motion:reduce){
+  .map-loading{transition:none}
+  .ml-scan,.ml-bar i.now,.plan-btn.is-loading::after{animation:none}
+  .plan-btn.is-loading::after{width:100%}
+}
 
 /* ---------- report ---------- */
 .modal{position:fixed;inset:0;z-index:2000;background:rgba(3,7,8,.72);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:28px}
@@ -351,6 +387,18 @@ footer.site{border-top:1px solid var(--line);padding:44px 7vw 64px;font-size:13p
       </div>
     </div>
     <div class="route-results" id="routeResults"></div>
+    <div class="map-loading" id="mapLoading">
+      <div class="ml-scan" aria-hidden="true"></div>
+      <div class="ml-panel">
+        <div class="ml-kicker" id="mlKicker" aria-hidden="true"></div>
+        <div class="ml-phase" id="mlPhase" role="status" aria-live="polite"></div>
+        <div class="ml-bar" id="mlBar" aria-hidden="true"></div>
+        <p class="ml-note" id="mlNote" hidden>Demo hosted on a sleeping free instance — first load can take around 30–60 seconds.</p>
+        <p class="ml-detail" id="mlDetail" hidden></p>
+        <div class="ml-meta" id="mlMeta" aria-hidden="true"></div>
+        <button class="ml-retry" id="mlRetry" hidden>TRY AGAIN →</button>
+      </div>
+    </div>
   </div>
 </section>
 </div>

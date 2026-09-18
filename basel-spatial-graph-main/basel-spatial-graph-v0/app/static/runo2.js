@@ -75,7 +75,113 @@ document.querySelectorAll('#layerToggle button').forEach((b) =>
     drawRoutes();
   }));
 
-$('planBtn').addEventListener('click', loadLoops);
+$('planBtn').addEventListener('click', () => loadLoops());
+
+/* ---------- map loading state ----------
+ * The demo runs on a free instance that sleeps, and the first /run request of
+ * a container's life also builds the cached network + air preparation. That can
+ * take tens of seconds. The API reports no progress, so these phases are coarse
+ * estimates driven by elapsed time and the request lifecycle. They name the real
+ * stages of the request, but the timing is a guess and the interface says so
+ * ("timed estimate") rather than inventing a percentage.
+ */
+const SERVER_SEEN_KEY = 'runo2-server-answered-at';
+const SERVER_SEEN_TTL_MS = 90000;   // shorter than the hosting idle-sleep window
+const LONG_WAIT_MS = 6000;
+
+const COLD_PHASES = [
+  { at: 0, label: 'Waking demo server…', btn: 'WAKING SERVER…' },
+  { at: 6000, label: 'Loading Basel walking network…', btn: 'LOADING NETWORK…' },
+  { at: 14000, label: 'Loading air-quality evidence…', btn: 'LOADING AIR DATA…' },
+  { at: 24000, label: 'Building route candidates…', btn: 'BUILDING ROUTES…' },
+];
+const WARM_PHASES = [
+  { at: 0, label: 'Building route candidates…', btn: 'FINDING ROUTES…' },
+  { at: 6000, label: 'Still waiting — the demo instance may have gone back to sleep…', btn: 'WAKING SERVER…' },
+];
+
+const loadUi = { phases: COLD_PHASES, index: -1, startedAt: 0, tick: 0, reveal: 0 };
+
+/* One session-scoped fact, not a warm-up ping: the last time this browser got
+ * any answer out of the server. Recent enough, and the wake-up phase would be
+ * a lie, so the shorter warm sequence runs instead. */
+function serverAnsweredRecently() {
+  try {
+    const at = Number(sessionStorage.getItem(SERVER_SEEN_KEY));
+    return at > 0 && Date.now() - at < SERVER_SEEN_TTL_MS;
+  } catch { return false; }
+}
+function rememberServerAnswered() {
+  try { sessionStorage.setItem(SERVER_SEEN_KEY, String(Date.now())); } catch { /* private mode */ }
+}
+
+function startLoading({ immediate }) {
+  const el = $('mapLoading');
+  loadUi.phases = serverAnsweredRecently() ? WARM_PHASES : COLD_PHASES;
+  loadUi.index = -1;
+  loadUi.startedAt = Date.now();
+  el.classList.remove('error');
+  $('mlNote').hidden = true;
+  $('mlDetail').hidden = true;
+  $('mlRetry').hidden = true;
+  $('mlMeta').textContent = '';
+  $('mlBar').style.setProperty('--steps', loadUi.phases.length);
+  $('mlBar').innerHTML = loadUi.phases.map(() => '<i></i>').join('');
+  tickLoading();
+  clearInterval(loadUi.tick);
+  loadUi.tick = setInterval(tickLoading, 1000);
+  clearTimeout(loadUi.reveal);
+  // A warm request usually returns in well under a second; do not flash for it.
+  if (immediate) el.classList.add('open');
+  else loadUi.reveal = setTimeout(() => el.classList.add('open'), 220);
+}
+
+function tickLoading() {
+  const elapsed = Date.now() - loadUi.startedAt;
+  let current = 0;
+  loadUi.phases.forEach((phase, i) => { if (elapsed >= phase.at) current = i; });
+  if (current !== loadUi.index) {
+    loadUi.index = current;
+    const phase = loadUi.phases[current];
+    $('mlPhase').textContent = phase.label;
+    $('mlKicker').textContent = `stage ${current + 1} / ${loadUi.phases.length} · timed estimate`;
+    [...$('mlBar').children].forEach((seg, i) => {
+      seg.className = i < current ? 'done' : i === current ? 'now' : '';
+    });
+    $('planBtn').textContent = phase.btn;
+  }
+  if (elapsed >= LONG_WAIT_MS) {
+    $('mlNote').hidden = false;
+    $('mlMeta').textContent = `waiting ${Math.round(elapsed / 1000)}s`;
+  }
+}
+
+function endLoading() {
+  clearInterval(loadUi.tick); loadUi.tick = 0;
+  clearTimeout(loadUi.reveal); loadUi.reveal = 0;
+}
+
+function stopLoading() {
+  endLoading();
+  $('mapLoading').classList.remove('open');
+}
+
+/* The map cannot show a route it never received, so the failure stays on the
+ * map instead of leaving a silent empty instrument. */
+function failLoading(message, detail) {
+  endLoading();
+  const waited = Math.round((Date.now() - loadUi.startedAt) / 1000);
+  $('mapLoading').classList.add('open', 'error');
+  $('mlKicker').textContent = 'request failed';
+  $('mlPhase').textContent = message;
+  $('mlDetail').textContent = detail;        // server text stays text, never markup
+  $('mlDetail').hidden = !detail;
+  $('mlNote').hidden = false;
+  $('mlMeta').textContent = waited >= 1 ? `failed after ${waited}s` : '';
+  $('mlRetry').hidden = false;
+}
+
+$('mlRetry').addEventListener('click', () => loadLoops());
 
 /* ---------- loading routes ---------- */
 function query() {
@@ -88,15 +194,21 @@ function query() {
   return p;
 }
 
-async function loadLoops() {
+async function loadLoops({ initial = false } = {}) {
   const btn = $('planBtn');
-  btn.disabled = true; btn.textContent = 'FINDING ROUTES…';
+  btn.disabled = true; btn.classList.add('is-loading');
   $('routeResults').innerHTML = '';
+  startLoading({ immediate: initial });
   try {
     const res = await fetch('/run/loops?' + query());
+    rememberServerAnswered();
     if (!res.ok) {
       const body = await res.json().catch(() => ({ detail: res.statusText }));
-      showNotice(`<strong style="color:var(--orange)">No route.</strong> ${body.detail}`);
+      // 404 is the planner answering honestly; anything else is the demo failing.
+      const answered = res.status === 404;
+      showNotice(`<strong style="color:var(--orange)">${answered ? 'No route.' : 'Planner error.'}</strong> ${body.detail}`);
+      if (answered) stopLoading();
+      else failLoading('The planner could not answer.', body.detail || res.statusText);
       return;
     }
     const data = await res.json();
@@ -105,12 +217,15 @@ async function loadLoops() {
     state.meta = data;
     renderCards();
     drawRoutes();
+    stopLoading();
     showCoverageNotice(data);
     loadConditions();
   } catch (err) {
     showNotice(`Could not reach the planner: ${err}`);
+    failLoading('Could not reach the demo server.', String(err));
   } finally {
-    btn.disabled = false; btn.textContent = 'FIND 3 ROUTES →';
+    btn.disabled = false; btn.classList.remove('is-loading');
+    btn.textContent = 'FIND 3 ROUTES →';
   }
 }
 
@@ -279,12 +394,16 @@ async function loadConditions() {
 /* ---------- pre-run report ---------- */
 async function openReport() {
   $('reportModal').classList.add('open');
-  $('reportSummary').innerHTML = '<div class="mono muted">Loading…</div>';
+  // Same session fact as the map overlay: warn before a wait, not after it.
+  $('reportSummary').innerHTML = serverAnsweredRecently()
+    ? '<div class="mono muted">Loading…</div>'
+    : '<div class="mono muted">Loading… the demo instance may need to wake up first.</div>';
   $('reportAir').innerHTML = ''; $('reportProv').innerHTML = '';
   $('reportElev').innerHTML = ''; $('reportWeather').innerHTML = '';
   const p = query(); p.set('index', state.selected);
   try {
     const res = await fetch('/run/report?' + p);
+    rememberServerAnswered();
     if (!res.ok) throw new Error((await res.json()).detail);
     state.report = await res.json();
     renderReport(state.report);
@@ -391,4 +510,4 @@ function renderReport(r) {
 }
 
 /* first paint */
-loadLoops();
+loadLoops({ initial: true });
