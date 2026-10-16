@@ -1,6 +1,18 @@
+<!-- BEGIN public-repo-header -->
+<div align="center">
+
 # runO2
 
 **Basel's trams measured the air. Can that data plan a run?**
+
+<a href="https://github.com/blackmath88/RunO2/actions/workflows/quality-safety.yml"><img alt="Quality" src="https://github.com/blackmath88/RunO2/actions/workflows/quality-safety.yml/badge.svg?branch=main"></a>
+<a href="https://github.com/blackmath88/RunO2"><img alt="Primary language: Python" src="https://img.shields.io/badge/language-Python-526078?style=flat"></a>
+<a href="https://github.com/blackmath88/RunO2/tree/main/docs"><img alt="Documentation" src="https://img.shields.io/badge/docs-guide-16796f?style=flat"></a>
+<a href="https://github.com/blackmath88/RunO2/blob/main/LICENSE"><img alt="License: see file" src="https://img.shields.io/badge/license-see%20file-737373?style=flat"></a>
+<a href="https://github.com/blackmath88/RunO2/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/blackmath88/RunO2?style=flat&amp;color=737373"></a>
+
+</div>
+<!-- END public-repo-header -->
 
 runO2 is a quick **Hack am Rhein Warm Up 2026** experiment: a running-loop planner for Basel built on a typed spatial graph of the city — and an honest answer to the question it was built to ask.
 
