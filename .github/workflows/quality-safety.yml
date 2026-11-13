@@ -18,7 +18,7 @@ jobs:
         working-directory: basel-spatial-graph-main/basel-spatial-graph-v0
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
           cache: pip
