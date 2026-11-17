@@ -5,4 +5,4 @@ osmnx>=2.0
 
 # Clipping the federal air-quality rasters (`python -m app.air.baseline --prepare`).
 # The server reads the committed 60 kB clip with numpy alone and never imports this.
-rasterio>=1.3
+rasterio>=1.5.2
